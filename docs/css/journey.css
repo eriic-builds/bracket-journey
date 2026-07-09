@@ -228,6 +228,9 @@ h3{font-size:clamp(1.25rem,2.4vw,1.6rem); font-weight:700; letter-spacing:-.01em
 }
 .shot img{width:100%; height:auto; display:block}
 .shot .cap{font-size:.78rem; color:var(--muted); padding:9px 13px; border-top:1px solid var(--border); background:var(--panel)}
+/* round-2 image refresh helpers */
+.shot.tall img{height:clamp(360px,54vh,640px); object-fit:cover; object-position:top}
+.shot.band{max-width:none}
 figure{margin:0}
 
 /* ---------- "Under the hood" panels ---------- */

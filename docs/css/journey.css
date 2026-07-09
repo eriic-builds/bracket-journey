@@ -134,6 +134,10 @@ h3{font-size:clamp(1.25rem,2.4vw,1.6rem); font-weight:700; letter-spacing:-.01em
 .nav .dots a:hover{color:var(--text); background:var(--hover)}
 .nav .dots a.active{color:var(--text); background:var(--grad-soft)}
 .nav .navcta{display:flex; gap:8px; align-items:center}
+.nav .social{display:inline-flex; align-items:center; gap:4px}
+.nav .social a{color:var(--muted); display:inline-flex; line-height:0; padding:6px; border-radius:8px; transition:color .16s ease, background .16s ease, transform .16s ease}
+.nav .social a:hover{color:var(--text); background:var(--hover); transform:translateY(-1px)}
+.nav .social svg{width:18px; height:18px; fill:currentColor; display:block}
 .nav-toggle{display:none}
 @media (max-width:900px){
   .nav .dots{display:none}

@@ -20,7 +20,7 @@
     if (!btn) return;
     var sync = function () {
       var dark = root.getAttribute("data-theme") !== "light";
-      btn.textContent = dark ? "☀️" : "🌙";
+      btn.textContent = dark ? "\u263C" : "\u263E";
       btn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
     };
     sync();
@@ -135,13 +135,71 @@
     });
   }
 
+  /* ---- top scroll-progress bar ----------------------------------------- */
+  var progressEl = null;
+  function wireProgress() {
+    progressEl = document.querySelector(".progress");
+  }
+  function paintProgress() {
+    if (!progressEl) return;
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var pct = h > 0 ? (window.pageYOffset / h) * 100 : 0;
+    progressEl.style.width = Math.max(0, Math.min(100, pct)) + "%";
+  }
+
+  /* ---- click-to-zoom lightbox ------------------------------------------ */
+  function wireLightbox() {
+    var triggers = Array.prototype.slice.call(document.querySelectorAll("[data-zoom]"));
+    if (!triggers.length) return;
+    var box = document.createElement("div");
+    box.className = "lbox";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.innerHTML = '<button class="lclose" type="button" aria-label="Close">\u2715</button>' +
+      '<img alt=""><div class="lcap"></div>';
+    document.body.appendChild(box);
+    var bImg = box.querySelector("img"), bCap = box.querySelector(".lcap");
+    var lastFocus = null;
+    function open(src, alt, cap) {
+      lastFocus = document.activeElement;
+      bImg.src = src; bImg.alt = alt || ""; bCap.textContent = cap || "";
+      box.classList.add("open");
+      box.querySelector(".lclose").focus();
+    }
+    function close() {
+      box.classList.remove("open"); bImg.src = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    triggers.forEach(function (t) {
+      var img = t.tagName === "IMG" ? t : t.querySelector("img");
+      if (!img) return;
+      t.setAttribute("tabindex", "0");
+      t.setAttribute("role", "button");
+      t.setAttribute("aria-label", "Enlarge image");
+      var fire = function () {
+        var cap = t.getAttribute("data-cap") || img.getAttribute("alt") || "";
+        open(img.currentSrc || img.src, img.getAttribute("alt"), cap);
+      };
+      t.addEventListener("click", fire);
+      t.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fire(); }
+      });
+    });
+    box.addEventListener("click", function (e) {
+      if (e.target === box || e.target.classList.contains("lclose")) close();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && box.classList.contains("open")) close();
+    });
+  }
+
   /* ---- rAF-batched scroll loop ----------------------------------------- */
   var ticking = false;
   function onScroll() {
     if (ticking) return;
     ticking = true;
     window.requestAnimationFrame(function () {
-      paintNav(); paintWordReveal(); paintStrips();
+      paintNav(); paintWordReveal(); paintStrips(); paintProgress();
       ticking = false;
     });
   }
@@ -153,7 +211,9 @@
     wireStrips();
     wireNav();
     wireImgFallback();
-    paintNav(); paintWordReveal(); paintStrips();
+    wireProgress();
+    wireLightbox();
+    paintNav(); paintWordReveal(); paintStrips(); paintProgress();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
 

@@ -51,7 +51,7 @@ body.m-tech .eli5{display:none}
   <div class="dots">
     <a href="#overview">Overview</a><a href="#excel">Excel</a><a href="#wc26">wc26</a>
     <a href="#mywc26">my-wc26</a><a href="#sled">sled</a><a href="#method">Method</a>
-    <a href="#walls">Walls</a><a href="#learn">Learn</a>
+    <a href="#role">Role</a><a href="#walls">Walls</a><a href="#learn">Learn</a>
   </div>
   <div class="navcta">
     <button id="themeBtn" class="iconbtn" type="button" aria-label="Toggle theme">◐</button>
@@ -618,6 +618,54 @@ node tests/compare.mjs &amp;&amp; node tests/bracketmap.mjs &amp;&amp; node test
 
 <hr class="hr wrap">
 
+<!-- MY ROLE -->
+<section class="wrap" id="role">
+  <span class="section-label reveal">My role, and the AI's</span>
+  <h2 class="reveal">Who did what</h2>
+  <p class="lead reveal"><b>Lead voice: Naval.</b> Learn to build. Learn to sell. Do both.</p>
+  <p class="lede maxch reveal">Some will read this as pointing, prompting, and pressing enter. So
+  here is the honest split, and the part prompting does not reach.</p>
+  <div class="split mt3">
+    <div class="glass card reveal">
+      <h3>What I owned</h3>
+      <ul class="next-list">
+        <li><b>The vision.</b> I saw an app inside a spreadsheet, and I knew what good looked like before any code.</li>
+        <li><b>The spec.</b> One data contract held across three runtimes. Python, the browser, and a link.</li>
+        <li><b>The judgment.</b> No backend. No re-share. base64 over bit-packing. Dark default. Every call was mine, and I defend each one.</li>
+        <li><b>The review.</b> I read the output, caught the drift, diagnosed five walls at the root, and approved each stage.</li>
+      </ul>
+    </div>
+    <div class="glass card reveal d1">
+      <h3>What the AI did</h3>
+      <ul class="next-list">
+        <li><b>The keystrokes.</b> It wrote the code and the commit messages against my brief.</li>
+        <li><b>The mechanical work.</b> It ran the tools, captured the screenshots, and mined the repos, under my review.</li>
+      </ul>
+      <p class="muted mt2" style="font-size:.9rem">This is leverage. The typing scales. The judgment does not delegate.</p>
+    </div>
+  </div>
+
+  <div class="tradeoff reveal">
+    <span class="rl">What prompting does not reach</span>
+    <p class="mb0">Prompting gets a demo. It does not get a spec surviving three runtimes, a golden
+    test failing on drift, five walls diagnosed at the root, or a decision I defend under
+    questioning. I explain the URL fragment, the penalty edge, and the write scope the sync bot
+    needed, because I made those calls, not because a model handed them to me.</p>
+  </div>
+
+  <h3 class="mt3 reveal">Dev, test, then production</h3>
+  <p class="chnarr reveal">I ran a dev-to-prod discipline. my-wc26-bracket became my test bench. I
+  served it on a local server, pushed each change hard against real data, and iterated until it
+  held. Only then did the work graduate to sled, the production repo. Each refinement began as a
+  question I researched, reading how the people who ship this for a living do it, and ended as a
+  commit I stand behind.</p>
+
+  <p class="principle reveal">Learn to build, learn to sell. The building is three live apps, public
+  under my name. The selling is this page. The judgment is mine, and it does not delegate.</p>
+</section>
+
+<hr class="hr wrap">
+
 <!-- WALLS -->
 <section class="wrap" id="walls">
   <span class="section-label reveal">Engineering walls</span>
@@ -694,8 +742,31 @@ node tests/compare.mjs &amp;&amp; node tests/bracketmap.mjs &amp;&amp; node test
       <li>The $0 cost holds because the browser does the work and GitHub serves static files. Heavy write traffic would need a different design.</li>
       <li>A link is the data, so it cannot be revoked. The mitigation is a share-as alias, not a delete button.</li>
       <li>Rivals live on one device. Cross-device sync is out of scope, on purpose.</li>
-      <li>If I did it again, I would freeze the test inputs on day one and set the deploy permissions up front. Most walls were CI, not code.</li>
     </ul>
+  </div>
+
+  <div class="split mt3">
+    <div class="glass card reveal">
+      <h3>If I started again</h3>
+      <ul class="next-list">
+        <li>Write the data contract before any runtime, not after the first one shipped.</li>
+        <li>Freeze the test inputs on day one, so the eval never flaps.</li>
+        <li>Set the deploy and automation permissions up front. Most walls were CI, not code.</li>
+        <li>Stand up the dev-to-prod split from the start, not once production hurt.</li>
+      </ul>
+    </div>
+    <div class="glass card reveal d1">
+      <h3>What carries to the next build</h3>
+      <p class="muted mb0">The next build might be an agent, a process automation, or another page.
+      The same habits hold. Each one adapts to the shape of the work.</p>
+      <ul class="next-list mt1">
+        <li><b>Brief first.</b> Intent is the artifact. For an agent, the spec matters more, not less, because the model has more room to wander.</li>
+        <li><b>Evals before scale.</b> The golden test becomes a grader. Build the eval before the agent, and let it gate every change.</li>
+        <li><b>Guardrails by structure.</b> The URL fragment made a leak impossible. For an agent, the same idea is tight tool scopes and a sandbox, so a bad step never reaches production.</li>
+        <li><b>Dev, test, prod.</b> A bench to pressure-test the loop against real inputs before it ships.</li>
+        <li><b>Judgment stays with me.</b> The model drafts and executes. I set direction, read the output, and own the call.</li>
+      </ul>
+    </div>
   </div>
 
   <div class="cta glass reveal mt3">

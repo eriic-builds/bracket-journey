@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Project Review. How The Bracket Journey was built.</title>
-<meta name="description" content="A Technical Taste Council review of the bracket-journey build. The plans, the codebase, and what changed and why, explained plainly and technically.">
+<title>How it was built. A technical deep dive.</title>
+<meta name="description" content="A technical deep dive of how three live, zero-backend World Cup bracket apps were engineered, from an Excel file to a bracket packed inside a URL. Explained plainly and technically.">
+<link rel="canonical" href="https://eriic-builds.github.io/bracket-journey/ANALYSIS.html">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%230097F4%22/><stop offset=%221%22 stop-color=%22%2300B291%22/></linearGradient></defs><circle cx=%2250%22 cy=%2250%22 r=%2246%22 fill=%22url(%23g)%22/></svg>">
 <link rel="stylesheet" href="css/journey.css">
 <style>
-/* ---- analysis-only extras (design system comes from journey.css) ---- */
 .modebar{display:inline-flex;gap:2px;background:var(--hover);border:1px solid var(--border2);border-radius:999px;padding:3px}
 .modebar button{font:inherit;font-weight:700;font-size:.82rem;color:var(--muted);background:transparent;border:0;padding:7px 14px;border-radius:999px;cursor:pointer;transition:.15s}
 .modebar button.on{color:#04121a;background:var(--grad)}
@@ -16,49 +16,42 @@ body.m-eli5 .tech{display:none}
 body.m-tech .eli5{display:none}
 .lens{display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
 .lens.e{color:var(--win-ink);background:rgba(0,178,145,.12);border:1px solid rgba(0,178,145,.3)}
-.lens.t{color:#7cc3ff;background:rgba(0,151,244,.12);border:1px solid rgba(0,151,244,.3)}
-.eli5,.tech{border-radius:14px;padding:14px 16px;margin-top:10px}
+.lens.t{color:#7cc3ff;background:rgba(0,151,244,.12);border:1px solid rgba(0,151,244,.2)}
+.eli5,.tech{border-radius:14px;padding:14px 16px;margin-top:12px}
 .eli5{background:rgba(0,178,145,.06);border:1px solid rgba(0,178,145,.22)}
 .tech{background:rgba(0,151,244,.05);border:1px solid rgba(0,151,244,.2)}
 .eli5 p,.tech p{margin:.4em 0 0}
-/* phases */
-.phase{border-radius:var(--radius);padding:18px 18px 8px}
-.phase h4{margin:0 0 4px;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.phase .pnote{color:var(--muted);font-size:.84rem;margin:0 0 12px}
-.todo{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--border)}
-.todo:first-of-type{border-top:0}
-.todo .dot{width:18px;height:18px;border-radius:50%;flex:0 0 auto;margin-top:2px;display:grid;place-items:center;font-size:.7rem;font-weight:800}
-.todo .dot.done{background:var(--win);color:#04121a}
-.todo .tt{font-weight:700;font-size:.92rem}
-.todo .td{color:var(--muted);font-size:.83rem}
-.todo code{font-family:var(--mono);font-size:.8em;color:var(--text2)}
-/* review cards */
-.review{padding:18px 20px;border-radius:var(--radius)}
-.review+.review{margin-top:14px}
-.review .rh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.review .rh b{font-size:1.05rem}
-.review .dom{color:var(--muted);font-size:.82rem}
-.verdict{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:4px 11px;border-radius:999px}
-.verdict.pass{color:var(--win-ink);background:rgba(0,178,145,.12);border:1px solid rgba(0,178,145,.3)}
-.verdict.improved{color:var(--gold-ink);background:rgba(255,206,32,.12);border:1px solid rgba(255,206,32,.35)}
-.review .said{margin:.7em 0 0;color:var(--text2)}
-.review .did{margin:.5em 0 0}
-.review .did::before{content:"→ ";color:var(--win)}
-.legend2{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;color:var(--muted)}
 .filemap{font-family:var(--mono);font-size:.86rem;line-height:1.9;color:var(--text2)}
-.filemap .c{color:var(--muted)}
-.filemap b{color:var(--text)}
+.filemap .c{color:var(--muted)} .filemap b{color:var(--text)}
+.voicegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:820px){.voicegrid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.voicegrid{grid-template-columns:1fr}}
+.runex{border-left:3px solid var(--gold);background:rgba(255,206,32,.06);border-radius:12px;padding:14px 16px;margin-top:16px}
+.runex .rl,.runself .rl,.tradeoff .rl{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;font-weight:800;margin-bottom:6px}
+.runex b{color:var(--gold-ink)}
+.runself{border:1px solid var(--border2);border-radius:12px;background:var(--code-bg);padding:12px 15px;margin-top:16px;font-family:var(--mono);font-size:.82rem;color:#e6e6ea;line-height:1.7;overflow-x:auto}
+.runself .rl{font-family:var(--fstack)}
+.tradeoff{border:1px solid var(--border2);border-radius:12px;padding:14px 16px;margin-top:16px;background:var(--panel2)}
+.tradeoff b{color:var(--win-ink)}
+.principle{margin-top:16px;font-size:1.05rem;font-weight:700;padding-left:16px;border-left:3px solid var(--blue)}
+.gloss div{padding:9px 0;border-top:1px solid var(--border)}
+.gloss div:first-child{border-top:0}
+.gloss b{color:var(--text)}
+.lead{font-size:.78rem;color:var(--muted);font-weight:600;margin:0 0 10px}
+.lead b{color:var(--win-ink)}
 </style>
 </head>
 <body class="m-both">
-<a class="skip" href="#plans">Skip to the review</a>
+<a class="skip" href="#overview">Skip to the deep dive</a>
+<div class="progress" aria-hidden="true"></div>
 
 <nav class="nav" aria-label="Section navigation">
   <a class="brand" href="#top"><span class="orb" aria-hidden="true"></span>
-    <span>Project Review<small>The Bracket Journey · the last look</small></span></a>
+    <span>How it was built<small>A technical deep dive</small></span></a>
   <div class="dots">
-    <a href="#plans">Plans</a><a href="#codebase">Codebase</a><a href="#council">Council</a>
-    <a href="#revisions">Revisions</a><a href="#learn">Learnings</a>
+    <a href="#overview">Overview</a><a href="#excel">Excel</a><a href="#wc26">wc26</a>
+    <a href="#mywc26">my-wc26</a><a href="#sled">sled</a><a href="#method">Method</a>
+    <a href="#walls">Walls</a><a href="#learn">Learn</a>
   </div>
   <div class="navcta">
     <button id="themeBtn" class="iconbtn" type="button" aria-label="Toggle theme">◐</button>
@@ -69,12 +62,11 @@ body.m-tech .eli5{display:none}
 <!-- HERO -->
 <header class="hero wrap" id="top">
   <div class="reveal in">
-    <span class="kicker">The last review · what / why / learnings</span>
-    <h1 class="mt2">How this got built, and <span class="grad-text">why</span>.</h1>
-    <p class="lede maxch">One last pass over the whole project. The plans and how they ran, the
-    codebase, and a <b>Technical Taste Council</b> review of the work. The same nine voices guided
-    the build. Now they turn back on it. Every idea appears two ways, so you learn it at either
-    level.</p>
+    <span class="kicker">A technical deep dive · the engineering</span>
+    <h1 class="mt2">How it was built. <span class="grad-text">Under the hood.</span></h1>
+    <p class="lede maxch">Three live World Cup bracket apps. No backend, no build step, $0 a month.
+    This is the engineering, stage by stage, from an Excel file to a bracket packed inside a
+    URL. You follow one real match through every system, and you run each stage yourself.</p>
 
     <div class="glass card mt2" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <span style="font-weight:700">Read it as:</span>
@@ -83,285 +75,649 @@ body.m-tech .eli5{display:none}
         <button data-mode="both" class="on" type="button">Both</button>
         <button data-mode="tech" type="button">Technical</button>
       </div>
-      <span class="muted" style="font-size:.86rem">Switch anytime. It re-flows the whole page.</span>
+      <span class="muted" style="font-size:.86rem">Set your depth. It re-flows the page.</span>
     </div>
 
     <div class="herostats mt3">
-      <div class="stat"><b>13</b><span>plans shipped</span></div>
-      <div class="stat"><b>9</b><span>council voices</span></div>
-      <div class="stat"><b>3</b><span>source repos</span></div>
+      <div class="stat"><b>3</b><span>apps</span></div>
+      <div class="stat"><b>187</b><span>commits</span></div>
+      <div class="stat"><b>0</b><span>backends</span></div>
       <div class="stat"><b>0</b><span>build steps</span></div>
-      <div class="stat"><b>0</b><span>JS errors</span></div>
+      <div class="stat"><b>$0</b><span>a month</span></div>
     </div>
   </div>
 </header>
 
 <div class="reverse-strip" aria-hidden="true"><div class="track" data-speed="0.1">
-  <span>scaffold</span><span>design system</span><span>motion</span><span>timeline</span>
-  <span>screenshots</span><span>narrative</span><span>architecture</span><span>skim layer</span>
-  <span>assemble</span><span>a11y + perf</span><span>verify</span><span>ship</span>
-  <span>scaffold</span><span>design system</span><span>motion</span><span>timeline</span>
-  <span>screenshots</span><span>narrative</span><span>architecture</span><span>skim layer</span>
-  <span>assemble</span><span>a11y + perf</span><span>verify</span><span>ship</span>
+  <span>data/*.json</span><span>build_dashboard.py</span><span>derive, not hardcode</span>
+  <span>fetch_results.py</span><span>penalty edge</span><span>match_all</span><span>cron ×3/day</span>
+  <span>computeState()</span><span>SheetJS</span><span>golden test</span><span>#b=base64url(JSON)</span>
+  <span>codeOrder</span><span>localStorage</span><span>rank + diff</span><span>zero backend</span>
+  <span>data/*.json</span><span>build_dashboard.py</span><span>derive, not hardcode</span>
+  <span>fetch_results.py</span><span>penalty edge</span><span>match_all</span><span>cron ×3/day</span>
+  <span>computeState()</span><span>SheetJS</span><span>golden test</span><span>#b=base64url(JSON)</span>
+  <span>codeOrder</span><span>localStorage</span><span>rank + diff</span><span>zero backend</span>
 </div></div>
 
-<!-- ============ PLANS EXECUTION ============ -->
-<section class="wrap" id="plans">
-  <span class="section-label reveal">Part 1 · Plans execution</span>
-  <h2 class="reveal">From one brief to thirteen plans</h2>
-  <p class="lede maxch reveal">The whole build ran off a single brief (kept in <code class="inline">/input/brief.md</code>)
-  turned into a plan (<code class="inline">/input/plan.md</code>) of 13 tracked steps. They ran in
-  five phases. Foundations first, then everything able to run in parallel, then assembly and
-  shipping.</p>
-
-  <div class="eli5 reveal"><span class="lens e">ELI5</span>
-    <p>Think of it like building a float for a parade. First you build the frame (foundations).
-    Then a bunch of people work at the same time, one paints, one writes the signs, one takes
-    photos. Finally everyone bolts their pieces on, you double-check it, and you roll it out.</p></div>
-  <div class="tech reveal"><span class="lens t">Technical</span>
-    <p>Todos ran with explicit dependencies (a small DAG). Phase 1 (scaffold → design
-    tokens → motion) ran serial because everything inherits from it. Phase 2 (git-history mining,
-    Playwright screenshot capture, imagery) ran fully independent, as background agents and
-    async jobs. Phase 3 (narrative, architecture panels, skim layer) depended only on the mined
-    facts. Phase 4 assembled and hardened. Phase 5 shipped to Pages.</p></div>
-
-  <div class="grid g2 mt3">
-    <div class="phase glass reveal">
-      <h4>Phase 1 · Foundations</h4><p class="pnote">Serial. Everything inherits from these.</p>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Scaffold the repo</div><div class="td">Dirs, LICENSE, Pages workflow, instruction files, copied <code>TECHNICAL_TASTE_COUNCIL.md</code>.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Port the design system</div><div class="td">sled's tokens → <code>journey.css</code>: Segoe UI, blue→teal gradient, glass, ambient glow.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Build the motion library</div><div class="td">Vanilla <code>motion.js</code>: reveals, word-reveal, reverse-scroll, scrollspy, theme.</div></div></div>
-    </div>
-    <div class="phase glass reveal d1">
-      <h4>Phase 2 · Research &amp; assets (parallel)</h4><p class="pnote">Independent. Ran concurrently.</p>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Reconstruct the timeline</div><div class="td">Mined git across 3 repos: 187 commits, dates, and every wall's commit hash.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Capture real screenshots</div><div class="td">Playwright drove each live app (demo, share, leaderboard) → real PNGs.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Imagery (copyright-safe)</div><div class="td">Chose real screenshots + CSS gradients over stock photos (see Naval, below).</div></div></div>
-    </div>
-    <div class="phase glass reveal">
-      <h4>Phase 3 · Content (dual track)</h4><p class="pnote">Depends on mined facts.</p>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Write the narrative</div><div class="td">Hero's-journey story track. Naval and Great-Demo framing. Improved intro.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Architecture explainers</div><div class="td">Diagrams and verbatim code snippets in "Under the hood" panels.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Build the skim layer</div><div class="td">30-second summary, evidence chips, and repos-at-a-glance.</div></div></div>
-    </div>
-    <div class="phase glass reveal d1">
-      <h4>Phase 4 · Assemble &amp; harden</h4><p class="pnote">Bring it together, then stress it.</p>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Assemble the page</div><div class="td">Composed <code>index.html</code>. Wired motion, nav, panels.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Polish a11y &amp; perf</div><div class="td">Skip link, focus rings, lazy images, reduced-motion, OG image.</div></div></div>
-      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Verify claims &amp; links</div><div class="td">Headless render, 0 errors. Snippets checked verbatim against source.</div></div></div>
-    </div>
+<!-- HOW THIS IS TOLD -->
+<section class="wrap tight" id="told">
+  <span class="section-label reveal">How this is told</span>
+  <h2 class="reveal">Nine voices, as ways of explaining</h2>
+  <p class="lede maxch reveal">A Technical Taste Council guided the build. Here they play a
+  different role. Each voice is a mode of explanation, not an architect. The stages apply these
+  modes, and I name the lens where it drives the telling.</p>
+  <div class="voicegrid mt3">
+    <div class="voice reveal"><b>Karpathy</b><span>Build from the simplest version. Teach the intuition, so you rederive it.</span></div>
+    <div class="voice reveal"><b>Hanselman</b><span>Write for the next human. Define every term. Use a plain analogy first.</span></div>
+    <div class="voice reveal"><b>Russinovich</b><span>Show what runs underneath. Cost, failure modes, what breaks under stress.</span></div>
+    <div class="voice reveal d1"><b>Willison / Hamel</b><span>Show your work. Give the command to run it and the output to expect.</span></div>
+    <div class="voice reveal d1"><b>Naval</b><span>End each stage with the one durable principle worth keeping.</span></div>
+    <div class="voice reveal d1"><b>Sean Grove</b><span>State the intent and the shape of done before the code.</span></div>
+    <div class="voice reveal d2"><b>Context Engineering</b><span>Progressive disclosure. The depth toggle above is this in practice.</span></div>
+    <div class="voice reveal d2"><b>Steve Yegge</b><span>Keep the arc memorable. One strong through-line, not a pile of parts.</span></div>
+    <div class="voice reveal d2"><b>Geoffrey Litt</b><span>Make it legible and tweakable. Show how you change one thing yourself.</span></div>
   </div>
-  <div class="phase glass reveal mt3" style="border-left:3px solid var(--blue)">
-    <h4>Phase 5 · Ship</h4>
-    <div class="todo"><span class="dot done">✓</span><div><div class="tt">Deploy to GitHub Pages</div><div class="td">Commit as eriic-builds, create the public repo, publish via Actions.</div></div></div>
+</section>
+
+<!-- HOW TO READ + GLOSSARY -->
+<section class="wrap tight" id="read">
+  <div class="split">
+    <div class="glass card reveal">
+      <h3>How to read this</h3>
+      <p class="muted">For engineers who want to learn how it works and build something like it.
+      No World Cup, Python, or JavaScript background needed. Terms are defined on first use.</p>
+      <ul class="next-list mt1">
+        <li>Read top to bottom for the arc.</li>
+        <li>Use the depth toggle to set ELI5, Technical, or Both.</li>
+        <li>Each stage ends with one principle and one command you run yourself.</li>
+      </ul>
+    </div>
+    <div class="glass card reveal d1">
+      <h3>Glossary</h3>
+      <div class="gloss">
+        <div><b>Bracket code</b><br><span class="muted">A short id for a match slot, like M74. The tree is a map of codes.</span></div>
+        <div><b>Topology</b><br><span class="muted">The fixed shape of the knockout tree. Which two prior matches feed each match.</span></div>
+        <div><b>Derivation</b><br><span class="muted">Every pixel comes from the data. Nothing about the result is hardcoded.</span></div>
+        <div><b>Pure function</b><br><span class="muted">Same inputs give the same output, with no side effects.</span></div>
+        <div><b>Wire format</b><br><span class="muted">The rule for packing a bracket into a URL. base64url of a small JSON object.</span></div>
+        <div><b>URL fragment</b><br><span class="muted">The part of a link after the number sign. Browsers never send it to a server.</span></div>
+        <div><b>Hermetic test</b><br><span class="muted">A test using only frozen inputs, never live data.</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
 <hr class="hr wrap">
 
-<!-- ============ CODEBASE ANALYSIS ============ -->
-<section class="wrap" id="codebase">
-  <span class="section-label reveal">Part 2 · Codebase analysis</span>
-  <h2 class="reveal">What's in the repo, and how it fits</h2>
+<!-- OVERVIEW -->
+<section class="wrap" id="overview">
+  <span class="section-label reveal">The system at a glance</span>
+  <h2 class="reveal">Three apps, one moving pick</h2>
+  <p class="lede maxch reveal">The build grew across three repos. Each one solved the pain of the
+  last. Here is the whole pipeline, then the running example you follow the rest of the way.</p>
 
-  <div class="split mt2">
-    <div class="reveal">
-      <p class="mt0">The whole thing stays deliberately boring in the best way. No framework, no
-      build step, no dependencies. A browser opens <code class="inline">docs/index.html</code>
-      directly. It matches the discipline of the apps it documents.</p>
-      <div class="eli5"><span class="lens e">ELI5</span><p>It is one web page, one stylesheet, and
-      one small script, like a poster, a box of crayons, and a wind-up motor. Nothing to install.
-      Double-click and it runs.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>A static site served from
-      <code class="inline">docs/</code> on GitHub Pages. <code class="inline">journey.css</code>
-      holds HSL-free design tokens per <code class="inline">[data-theme]</code>.
-      <code class="inline">motion.js</code> is an IIFE using <code class="inline">IntersectionObserver</code>
-      and one rAF-batched scroll handler. Progressive enhancement. With JS off, content still
-      renders and reveals show right away.</p></div>
-    </div>
-    <div class="glass card reveal d1">
-      <div class="filemap">
-<b>bracket-journey/</b><br>
-├─ <b>docs/</b>              <span class="c"># the deployed site</span><br>
-│  ├─ index.html       <span class="c"># the story (story + build track)</span><br>
-│  ├─ css/journey.css  <span class="c"># design system (from sled)</span><br>
-│  ├─ js/motion.js     <span class="c"># reveals, scrollspy, theme</span><br>
-│  ├─ assets/shots/    <span class="c"># REAL dashboard screenshots</span><br>
-│  └─ ANALYSIS.html    <span class="c"># ← you are here</span><br>
-├─ <b>input/</b>             <span class="c"># the spec behind it</span><br>
-│  ├─ brief.md         <span class="c"># prompt + all tuning</span><br>
-│  └─ plan.md          <span class="c"># the 13-step plan</span><br>
-├─ .github/workflows/  <span class="c"># Pages deploy</span><br>
-└─ TECHNICAL_TASTE_COUNCIL.md
-      </div>
-    </div>
-  </div>
-
-  <h3 class="mt3 reveal">The system it documents (what I re-analyzed)</h3>
-  <p class="maxch reveal">To write the architecture track honestly, I re-read all three source repos.
-  Here is the whole pipeline on one diagram, the thing a technical reader redraws from memory after
-  the story.</p>
-  <div class="diagram mt2 reveal">
+  <div class="diagram mt3 reveal">
     <div class="flow">
       <div class="node mono">Excel .xlsx<small>your picks</small></div>
       <div class="arrow">→</div>
-      <div class="node accent">parse / generate<small>SheetJS · build_dashboard.py</small></div>
+      <div class="node accent">build_dashboard.py<small>Python generator</small></div>
       <div class="arrow">→</div>
-      <div class="node accent">render engine<small>computeState()</small></div>
-      <div class="arrow">→</div>
-      <div class="node">dashboard<small>DOM / index.html</small></div>
+      <div class="node">index.html<small>on GitHub Pages</small></div>
     </div>
     <div class="flow mt2">
       <div class="node mono">FIFA feed<small>+ fallback</small></div>
       <div class="arrow">→</div>
-      <div class="node accent">fetch_results.py<small>3×/day bot</small></div>
+      <div class="node accent">fetch_results.py<small>sync bot, ×3/day</small></div>
       <div class="arrow">→</div>
-      <div class="node mono">results.json<small>on GitHub</small></div>
-      <div class="arrow">→</div>
-      <div class="node">live scores<small>into the render</small></div>
+      <div class="node mono">live.json<small>on GitHub</small></div>
     </div>
     <div class="flow mt2">
       <div class="node">your picks</div>
       <div class="arrow">→</div>
-      <div class="node accent mono">#b=base64url<small>URL fragment</small></div>
+      <div class="node accent mono">#b=base64url(JSON)<small>URL fragment</small></div>
       <div class="arrow">→</div>
       <div class="node">a friend's browser<small>localStorage leaderboard</small></div>
     </div>
   </div>
-  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>Three little machines. One turns your
-  spreadsheet into a scoreboard, one fetches the real scores a few times a day, and one lets you
-  mail your scoreboard to a friend inside a link, with no post office (server) in the middle.</p></div>
-  <div class="tech reveal"><span class="lens t">Technical</span><p>Repo 1 generates statically
-  (Python → HTML) and syncs via Actions. Repo 2 makes the render engine a pure function and runs
-  it client-side (SheetJS parse plus golden-test parity). Repo 3 serializes the 31-bit pick vector
-  to <code class="inline">base64url(JSON)</code> in the URL fragment, never transmitted, and keeps
-  rivals in <code class="inline">localStorage</code> (<code class="inline">wcb.rivals.v1</code>).</p></div>
+
+  <h3 class="mt3 reveal">The evolution is the spine</h3>
+  <p class="maxch reveal">Every refactor fixed the pain of the last one. Hold this arc in mind.</p>
+  <div class="glass card reveal mt1">
+    <ol class="next-list" style="list-style:decimal;padding-left:20px">
+      <li><b>Hardcoded HTML.</b> One file, everything inline. Hard to change, impossible to keep current.</li>
+      <li><b>JSON data layer.</b> Pull picks and results out of code into <code class="inline">data/*.json</code>. Content and presentation split.</li>
+      <li><b>Python generator.</b> <code class="inline">build_dashboard.py</code> derives the whole page from the data.</li>
+      <li><b>Self-updating machine.</b> A GitHub Action syncs results and redeploys on a schedule.</li>
+      <li><b>Client-side pure function.</b> Port the generator to the browser so anyone drops in a file.</li>
+      <li><b>URL-encoded state.</b> Pack the bracket into a link, so sharing needs no server.</li>
+      <li><b>Zero-backend social.</b> A local leaderboard compares links, and privacy holds by physics.</li>
+    </ol>
+  </div>
+
+  <div class="runex reveal">
+    <span class="rl">The running example</span>
+    <p class="mb0">One real match from the demo bracket. <b>M74, Round of 32. Germany 1, Paraguay 1,
+    Paraguay win 4 to 3 on penalties.</b> You picked Paraguay to advance. You will watch this one
+    pick move from a spreadsheet cell, to a derived bracket slot, to a scored result, to a single
+    bit inside a link.</p>
+  </div>
 </section>
 
 <hr class="hr wrap">
 
-<!-- ============ COUNCIL REVIEW ============ -->
-<section class="wrap" id="council">
-  <span class="section-label reveal">Part 3 · Technical Taste Council review</span>
-  <h2 class="reveal">Nine voices, turned back on the work</h2>
-  <p class="lede maxch reveal">This is the first analysis behind the revisions in Part 4. Each
-  voice owns a domain. Here is what it flagged on <em>this</em> repo, what I did, and the verdict.</p>
-  <div class="legend2 reveal">
-    <span><b style="color:var(--win-ink)">PASS</b>, already met the bar</span>
-    <span><b style="color:var(--gold-ink)">IMPROVED</b>, drove a concrete change</span>
+<!-- STAGE 1: EXCEL TO COWORK -->
+<section class="wrap chapter" id="excel">
+  <div class="chapterhead reveal">
+    <span class="chnum">01</span>
+    <div><span class="chkicker">The spark</span><h2>From a spreadsheet to a spec</h2></div>
+  </div>
+  <p class="lead reveal"><b>Lead voice: Sean Grove.</b> State the intent before the code.</p>
+  <div class="chnarr reveal">
+    <p>A leader in my org ran a bracket challenge. He emailed an Excel workbook. Everyone filled in
+    31 knockout picks, a champion, and a tiebreaker, and emailed it back. The data wanted to be
+    visual, so I designed a dashboard in Microsoft Cowork. A glassmorphism board, KPI cards, and a
+    bracket map.</p>
+    <p>The move was not the design. Instead of keeping it as a one-off prompt, I wrote
+    the design down as a markdown build kit. A spec anyone hands to an AI to rebuild the same
+    dashboard with their own picks. Version 6, then 7, then 8, each one tighter.</p>
+    <div class="eli5"><span class="lens e">ELI5</span><p>I did not paint one picture. I wrote the
+    recipe, so anyone bakes the same cake with their own ingredients.</p></div>
+    <div class="tech"><span class="lens t">Technical</span><p>The spec fixed the data contract
+    before any repo existed. A bracket is an entrant, a tiebreaker, 31 round picks, a champion, and
+    a runner-up. Every later stage, Python generator, browser port, and URL encoder, reads that
+    same shape. The contract stayed stable while the runtime changed three times.</p></div>
+  </div>
+  <div class="tradeoff reveal">
+    <span class="rl">The tradeoff</span>
+    <p class="mb0"><b>Spec first costs an hour and saves the project.</b> A prompt makes one
+    dashboard. A written spec makes a data contract every runtime agrees on. The spec is the
+    product. The code is the output.</p>
+  </div>
+  <p class="principle reveal">Write the recipe, not the dish.</p>
+</section>
+
+<hr class="hr wrap">
+
+<!-- STAGE 2: WC26 -->
+<section class="wrap chapter" id="wc26">
+  <div class="chapterhead reveal">
+    <span class="chnum">02</span>
+    <div>
+      <span class="chkicker">Make it mine</span><h2>The generator and the machine</h2>
+      <span class="chrepo">wc26-bracket <small>Python + GitHub Actions</small></span>
+    </div>
+  </div>
+  <p class="lead reveal"><b>Lead voices: Karpathy, then Russinovich.</b> Build the simplest generator, then show what the bot does underneath.</p>
+
+  <div class="chnarr reveal">
+    <p>The first repo turned one hardcoded HTML file into a real architecture. Three JSON files hold
+    the truth. A Python script derives the page. A bot keeps it current. The whole thing serves as
+    static files on GitHub Pages, with no server and no build step.</p>
   </div>
 
+  <h3 class="reveal">The data model</h3>
+  <p class="maxch reveal">Three files, one contract. Content lives in data, not in code.</p>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>The generator loads the three files at the top. Tuples are restored from JSON lists so the
+    render code reads cleanly.</p>
+    <div class="codecap">wc26-bracket/scripts/build_dashboard.py:18-25</div>
+    <pre class="code">P=_load("picks.json"); L=_load("live.json"); T=_load("topology.json")
+ENTRANT=P["entrant"]; TIEBREAKER=P["tiebreaker"]
+R32=[tuple(r) for r in P["r32"]]
+RES={c:tuple(v) for c,v in L["res"].items()}
+KO_FEED={c:tuple(v) for c,v in T["ko_feed"].items()}</pre>
+    <p><code class="inline">picks.json</code> holds your bracket. <code class="inline">live.json</code>
+    holds results the bot writes, as <code class="inline">res {code:[gA,gB,winner,note]}</code>.
+    <code class="inline">topology.json</code> holds <code class="inline">ko_feed</code>, the map from
+    a match to its two feeder matches.</p>
+  </div>
+
+  <h3 class="mt3 reveal">The render engine derives everything</h3>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>The page is not written by hand. The
+  script reads your picks and the scores, then works out every cell, card, and sentence from that
+  data. Change the data, and the page changes with it.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>Later-round match codes are derived from feeder codes, not stored. Story cards and the stage
+    tracker are computed the same way, so a rebuild always matches the data.</p>
+    <div class="codecap">wc26-bracket/scripts/build_dashboard.py:54-73</div>
+    <pre class="code">def _derive_round(prev_codes, wins, short):
+    codes=[]
+    for j,w in enumerate(wins):
+        c=_code_for(prev_codes[2*j], prev_codes[2*j+1])
+        PICK_BY_CODE[c]=w; KO_ROUND[c]=short; codes.append(c)
+    return codes</pre>
+  </div>
+
+  <h3 class="mt3 reveal">The sync engine, and one messy edge</h3>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>A small bot checks for finished games a
+  few times a day, writes the scores into one file, and never erases a good result. One game type
+  lies about its score, so the bot corrects it.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>The sync matches finished games to bracket codes round by round, walking
+    <code class="inline">ko_feed</code> so a match resolves only once both feeders have a winner.</p>
+    <div class="codecap">wc26-bracket/scripts/fetch_results.py, match_all</div>
+    <pre class="code">for code in sorted(ko_feed, key=lambda c: int(c[1:])):
+    fa, fb = ko_feed[code]
+    wa = res[fa][2] if fa in res else None
+    wb = res[fb][2] if fb in res else None
+    if wa and wb:
+        orient(code, wa, wb)</pre>
+    <p>Penalty shootouts are the edge case. The football-data feed folds the shootout goals into the
+    full-time score, so the bot subtracts the penalty tally to recover the real level score.</p>
+    <div class="codecap">wc26-bracket/scripts/fetch_results.py:89-143</div>
+    <pre class="code">if shootout:
+    ph, pa = int(ph), int(pa)
+    # football-data.org folds the shootout goals into fullTime (so a
+    # 1-1 game won 4-3 on pens reports as 5-4). Recover the level
+    # regulation/ET score by subtracting the shootout tally.
+    if gh != ga:
+        rh, ra = int(gh) - ph, int(ga) - pa</pre>
+    <p>It is idempotent. A run with no new finished games writes no change, and it never overwrites
+    a good result with junk.</p>
+  </div>
+
+  <div class="runex reveal">
+    <span class="rl">The running example</span>
+    <p class="mb0">Match M74 finishes 1 to 1, Paraguay winning 4 to 3 on penalties. Without the fix,
+    the feed reports a 5 to 4 win and the bracket shows the wrong story. The bot subtracts the
+    penalties, records <b>Germany 1, Paraguay 1, winner Paraguay, note "4-3 pens"</b>, and your
+    Paraguay pick reads as a hit.</p>
+  </div>
+
+  <h3 class="mt3 reveal">The machine keeps itself current</h3>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>A GitHub Action runs the sync three times a day, timed after each match block.</p>
+    <div class="codecap">wc26-bracket/.github/workflows/sync-results.yml</div>
+    <pre class="code">schedule:
+  - cron: "0 22 * * *"    # ~6:00 PM ET
+  - cron: "30 1 * * *"    # ~9:30 PM ET
+  - cron: "0 6 * * *"     # ~2:00 AM ET
+permissions:
+  contents: write
+  actions: write</pre>
+    <p>One trap hides here. A push made with the built-in token never fires other workflows, so the
+    site would stop redeploying on its own. The sync dispatches the deploy itself, which is why it
+    needs <code class="inline">actions: write</code>.</p>
+    <div class="codecap">wc26-bracket/.github/workflows/sync-results.yml</div>
+    <pre class="code">run: gh workflow run deploy-pages.yml --ref "${{ github.ref_name }}"</pre>
+    <p>A CI drift guard closes the loop. It regenerates the HTML and fails the build if the output
+    differs from the committed file, so the generator and the page never drift apart.</p>
+    <div class="codecap">wc26-bracket/.github/workflows/ci.yml</div>
+    <pre class="code">run: |
+  python scripts/build_dashboard.py
+  git diff --exit-code docs/index.html</pre>
+  </div>
+
+  <div class="runself reveal">
+    <span class="rl">Run it yourself</span>
+    python scripts/build_dashboard.py<br>
+    python scripts/fetch_results.py --dry-run<br>
+    python -m unittest discover -s tests -v
+  </div>
+  <div class="tradeoff reveal">
+    <span class="rl">The tradeoff</span>
+    <p class="mb0"><b>Derive from data instead of editing HTML.</b> A hand-edit drifts the moment the
+    data changes. Derivation means the sync only ever writes one JSON file, and the page rebuilds
+    itself. It retired an older approach. The old one rewrote the Python source with regular expressions.</p>
+  </div>
+  <p class="principle reveal">Build the machine, not the webpage.</p>
+</section>
+
+<hr class="hr wrap">
+
+<!-- STAGE 3: MY-WC26 -->
+<section class="wrap chapter" id="mywc26">
+  <div class="chapterhead reveal">
+    <span class="chnum">03</span>
+    <div>
+      <span class="chkicker">Make it theirs</span><h2>Into the browser</h2>
+      <span class="chrepo">my-wc26-bracket <small>client-side JavaScript</small></span>
+    </div>
+  </div>
+  <p class="lead reveal"><b>Lead voices: Karpathy, then Willison.</b> The pure function is the simplest honest idea, and a test proves the port by running it.</p>
+
+  <div class="chnarr reveal">
+    <p>I shared the build kit, and nobody built one. The friction was the instructions themselves.
+    So everything the Python generator did on my machine had to run in the visitor's browser
+    instead. Same output, from their file, with nothing to install.</p>
+  </div>
+
+  <h3 class="reveal">One pure function</h3>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>Give one function your picks, the
+  scores, and the tree, and it hands back the whole scored board. Same inputs, same output, every
+  time.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>The port rests on <code class="inline">computeState(picks, live, topology)</code>, a pure
+    transform. Section builders are pure string functions over its result.</p>
+    <div class="codecap">my-wc26-bracket/docs/js/render.js:60-65</div>
+    <pre class="code">export function computeState(picks, live, topology) {
+  const D = {};
+  D.ENTRANT = picks.entrant; D.TIEBREAKER = picks.tiebreaker;
+  D.R32 = picks.r32.map(r =&gt; r.slice(0, 5));   // [code,date,a,b,pick]
+  D.R16_WIN = picks.r16_win; D.QF_WIN = picks.qf_win; D.SF_WIN = picks.sf_win;
+  // ...derives scores, KPIs, and reach status from here
+}</pre>
+  </div>
+
+  <h3 class="mt3 reveal">Parse in the browser, and reject clearly</h3>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>SheetJS reads the workbook in the browser. Bad input throws a
+    <code class="inline">ValidationError</code> with a specific message, so the app never renders a
+    half-broken board.</p>
+    <div class="codecap">my-wc26-bracket/docs/js/parse-excel.js:26-30, 52-55</div>
+    <pre class="code">const wb = XLSX.read(arrayBuffer, { type: "array" });
+const ws = wb.Sheets["My Bracket"];
+if (!ws) throw new ValidationError(['Sheet "My Bracket" not found.']);
+// ...
+if (pick &amp;&amp; pick !== A.name &amp;&amp; pick !== B.name)
+  problems.push(`your pick "${pick}" isn't one of ${A.name} / ${B.name}.`);</pre>
+    <p>Hanselman's rule holds. Every error says what broke and what to do.</p>
+  </div>
+
+  <h3 class="mt3 reveal">A test to prove the port</h3>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>A big rewrite hides small bugs. So the
+  test checks the new browser output against the original, letter for letter. Not looks the same.
+  Identical.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>The golden test renders each section with the JavaScript engine and compares it to the Python
+    reference, section by section.</p>
+    <div class="codecap">my-wc26-bracket/tests/golden.mjs:11-27</div>
+    <pre class="code">const D = R.computeState(picks, live, topo);
+const js = {
+  bracket_actual: R.buildBracket(D, "actual"),
+  scorecard: R.buildScorecard(D), kpis: R.buildKpis(D),
+};
+for (const k of Object.keys(py)) {
+  if (py[k] === js[k]) { console.log("  ok   " + k); continue; }
+  fails++;
+}</pre>
+    <p>In hindsight it is an eval. A regression gate you run, not a claim you trust.</p>
+  </div>
+
+  <h3 class="mt3 reveal">Storage without leaks between brackets</h3>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>The parsed bracket lives in <code class="inline">localStorage</code>. What-if score edits are
+    tied to a hash of the bracket, so two uploads on one device never bleed into each other.</p>
+    <div class="codecap">my-wc26-bracket/docs/js/storage.js:4-6, 30-32</div>
+    <pre class="code">const KEY = "wcb.fan.picks.v1";
+const KEY_SCORES = "wcb.scores.v3";   // manual what-if overrides
+export function resetWhatIfsIfChanged(picks) {
+  const h = hashPicks(picks);
+  if (safeGet(KEY_HASH) !== h) { safeDel(KEY_SCORES); safeSet(KEY_HASH, h); }
+}</pre>
+  </div>
+
+  <div class="runex reveal">
+    <span class="rl">The running example</span>
+    <p class="mb0">Your workbook holds M74 with Paraguay picked. The parser reads it into
+    <code class="inline">picks.r32</code>, <code class="inline">computeState</code> scores it against
+    the synced result, and the scorecard marks M74 a hit. All of it in your browser, with your file
+    never leaving the device.</p>
+  </div>
+
+  <div class="runself reveal">
+    <span class="rl">Run it yourself</span>
+    cd docs &amp;&amp; python3 -m http.server 8000<br>
+    node tests/golden.mjs
+  </div>
+  <div class="tradeoff reveal">
+    <span class="rl">The tradeoff</span>
+    <p class="mb0"><b>A pure function is a promise you test.</b> Moving the engine into the browser
+    risked two code paths and drift. Expressing it as one pure function let a golden
+    test lock browser output to the original, so the port stayed honest.</p>
+  </div>
+  <p class="principle reveal">Ship the product, not the instructions.</p>
+</section>
+
+<hr class="hr wrap">
+
+<!-- STAGE 4: SLED -->
+<section class="wrap chapter" id="sled">
+  <div class="chapterhead reveal">
+    <span class="chnum">04</span>
+    <div>
+      <span class="chkicker">Make it social</span><h2>The URL is the database</h2>
+      <span class="chrepo">sled-mywcbracket <small>zero-backend social</small></span>
+    </div>
+  </div>
+  <p class="lead reveal"><b>Lead voices: Naval, then Litt.</b> The durable idea. The link carries the data, and the design stays legible and tweakable.</p>
+
+  <div class="chnarr reveal">
+    <p>Brackets are a social game. Every obvious way to compare with friends meant a backend, and a
+    central place holding coworkers' names. The question was whether a link carries the bracket
+    itself, so adding someone to your board never touches a server.</p>
+  </div>
+
+  <h3 class="reveal">The wire format</h3>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>A bracket is 31 win-or-lose choices,
+  so 31 ones and zeros. Pack them into the end of a link. The end of a link, after the number
+  sign, is never sent to any server. The privacy is not a promise. It is how links work.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>Encoding walks a canonical code order and writes one bit per match, then wraps the bits as
+    JSON and base64url. Later rounds depend on earlier picks, so encode and decode both walk the
+    same order.</p>
+    <div class="codecap">sled-mywcbracket/docs/js/share.js:7-26</div>
+    <pre class="code">function codeOrder(S) {
+  return [...S.r32codes, ...S.r16codes, ...S.qfcodes, ...S.sfcodes, S.finalcode];
+}
+export function encodeShare(picks, topology) {
+  const S = deriveStructure(topology);
+  const sel = {};
+  picks.r32.forEach(m =&gt; { sel[m[0]] = m[4]; });
+  // ...r16, qf, sf, final
+  let bits = "";  // one "0" or "1" per code, in codeOrder
+}</pre>
+    <p>Decoding reverses it, then rejects a truncated or newer-version link with a clear message
+    rather than rendering garbage.</p>
+    <div class="codecap">sled-mywcbracket/docs/js/share.js:36-45</div>
+    <pre class="code">if (payload.v !== 1) throw new Error("this link was made by a newer version of the site");
+if (typeof payload.b !== "string" || !/^[01]{31}$/.test(payload.b))
+  throw new Error("the link doesn't contain a complete bracket");</pre>
+  </div>
+
+  <div class="runex reveal">
+    <span class="rl">The running example</span>
+    <p class="mb0">Your M74 pick reaches the end of the road. It is one bit in the string. Paraguay
+    was the second team listed, so the bit reads <b>1</b>. All 31 bits, your name, and the
+    tiebreaker pack into about 140 characters after the <code class="inline">#</code>. You text the
+    link. Nothing was written anywhere.</p>
+  </div>
+
+  <h3 class="mt3 reveal">The leaderboard and the diff</h3>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>Standings rank by confirmed points, then attainable points, then name. The per-rival diff
+    lists only undecided matches, sorted by the points at stake.</p>
+    <div class="codecap">sled-mywcbracket/docs/js/compare.js:38-69</div>
+    <pre class="code">rows.sort((a, b) =&gt; (b.conf - a.conf) || (b.attain - a.attain) || a.name.localeCompare(b.name));
+// diff: only undecided matches, biggest stakes first
+const PTS = { r32: 1, r16: 2, qf: 4, sf: 8, final: 16 };
+out.sort((x, y) =&gt; (y.pts - x.pts) || (parseInt(x.code.slice(1),10) - parseInt(y.code.slice(1),10)));</pre>
+    <p>Rivals live in one browser key, capped at twenty. Adding a duplicate is a no-op.</p>
+    <div class="codecap">sled-mywcbracket/docs/js/compare.js:7-25</div>
+    <pre class="code">const KEY_RIVALS = "wcb.rivals.v1";
+export const RIVALS_CAP = 20;
+if (list.some(r =&gt; hashPicks(r.picks) === h)) return { ok: true, dup: true };
+if (list.length &gt;= RIVALS_CAP) return { ok: false, reason: "..." };</pre>
+  </div>
+
+  <h3 class="mt3 reveal">Privacy by design, and hermetic tests</h3>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>The spec names the invariants as non-negotiable. No network write in the social code. A
+    bracket leaves the browser only inside a link its owner made. Rivals stay local. Viewing a
+    shared or demo bracket never mutates your own saved bracket. There is no re-share feature, on
+    purpose, because rebroadcasting a coworker's picks without consent is the leak the design
+    avoids.</p>
+    <p>The tests are hermetic. The golden snapshot renders against frozen fixtures, not the live
+    results file a bot rewrites all day.</p>
+    <div class="codecap">sled-mywcbracket/tests/golden.mjs:8-19</div>
+    <pre class="code">// renders with tests/fixtures/results.frozen.json,
+// NOT the live docs/data/results.json a bot rewrites several times a day.
+const live = load(FX, "results.frozen.json");</pre>
+    <div class="codecap">sled-mywcbracket/package.json, the test script</div>
+    <pre class="code">node tests/scoring.mjs &amp;&amp; node tests/builder.mjs &amp;&amp; node tests/share.mjs &amp;&amp;
+node tests/compare.mjs &amp;&amp; node tests/bracketmap.mjs &amp;&amp; node tests/golden.mjs &amp;&amp; node tests/parse.mjs</pre>
+  </div>
+
+  <h3 class="mt3 reveal">The bracket reads the real path</h3>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>The "actual path" view shows who really
+  advanced, read straight from results. When your pick busted, it shows a placeholder like
+  "Winner M97" instead of a blank hole.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>Later slots read the real feeder winner from results, not the user's pick tree, so a busted
+    pick never leaves a dead cell.</p>
+    <div class="codecap">sled-mywcbracket/docs/js/render.js:270-274</div>
+    <pre class="code">if (!actual &amp;&amp; st !== "won" &amp;&amp; D.ELIM.has(team)) {
+  const lbl = feeder ? "Winner " + feeder : "TBD";
+  return `&lt;div class="team tbd-actual"&gt;&lt;span class="tname"&gt;${esc(lbl)}&lt;/span&gt;&lt;/div&gt;`;
+}</pre>
+  </div>
+
+  <div class="runself reveal">
+    <span class="rl">Run it yourself</span>
+    npm test<br>
+    node tests/golden.mjs --update   # accept an intentional render change
+  </div>
+  <div class="tradeoff reveal">
+    <span class="rl">The tradeoff</span>
+    <p class="mb0"><b>base64 of JSON, not bit-packing.</b> Tighter packing saves a few characters and
+    costs readability. base64 of JSON fits any chat and reads with <code class="inline">atob()</code>.
+    The bigger call was no backend at all. A free tier is a bill or a shutdown later. A link plus
+    localStorage has no such cliff.</p>
+  </div>
+  <p class="principle reveal">If the data is the link, there is nothing to leak.</p>
+</section>
+
+<hr class="hr wrap">
+
+<!-- METHOD -->
+<section class="wrap" id="method">
+  <span class="section-label reveal">The build method behind the third repo</span>
+  <h2 class="reveal">Brief, plan, execute, review, approve</h2>
+  <p class="lead reveal"><b>Lead voice: Steve Yegge.</b> Keep the arc memorable.</p>
+  <p class="lede maxch reveal">For the social layer I changed how I worked. Not prompting. Briefing.
+  A strong model plans, cheaper models do the mechanical work, and the strong model reviews the
+  output. My job moved up a level, to direction and judgment.</p>
+  <div class="pipeline mt3">
+    <div class="pstep reveal"><span class="who me">Me</span> I write the brief, Goal, Context, Source, Expectations</div>
+    <div class="pstep reveal"><span class="who ai">Strong model</span> turns it into staged plans</div>
+    <div class="pstep reveal"><span class="who me">Me</span> I review and adjust the plans</div>
+    <div class="pstep reveal"><span class="who cheap">Cheaper models</span> execute the mechanical work</div>
+    <div class="pstep reveal"><span class="who ai">Strong model</span> reviews the output</div>
+    <div class="pstep reveal"><span class="who me">Me</span> I approve each stage</div>
+  </div>
+  <div class="glass card mt3 reveal">
+    <h3>The discipline has names</h3>
+    <div class="grid g2 mt2">
+      <div class="voice"><b>Golden test, a regression eval</b><span>It byte-locks the render so no change ships by accident.</span></div>
+      <div class="voice"><b>The review model, a grader</b><span>It checks the plan and the output, not only writes them.</span></div>
+      <div class="voice"><b>Taste Council, a rubric</b><span>Named voices score each decision against a domain.</span></div>
+      <div class="voice"><b>URL fragment, a guardrail</b><span>The rule makes a leak impossible, not discouraged.</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- WALLS -->
+<section class="wrap" id="walls">
+  <span class="section-label reveal">Engineering walls</span>
+  <h2 class="reveal">Five failure modes, and the root cause of each</h2>
+  <p class="lead reveal"><b>Lead voice: Russinovich.</b> The interesting part is what broke underneath.</p>
   <div class="mt3">
-    <div class="review glass reveal"><div class="rh"><b>Karpathy</b><span class="dom">simplest thing works</span><span class="verdict pass">Pass</span></div>
-      <p class="said">The brief's motion snippet specified React, Vite, Tailwind, and Framer Motion. A page like this needs none of it.</p>
-      <p class="did">Shipped vanilla HTML, CSS, and JS, no build. I rebuilt the motion in about 180 lines. No framework earned its place.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Hanselman</b><span class="dom">optimize for the next human</span><span class="verdict improved">Improved</span></div>
-      <p class="said">Alt text, keyboard focus, and a fallback when a screenshot fails to load all needed attention.</p>
-      <p class="did">Added a skip link, <code class="inline">:focus-visible</code> rings, real alt text, and a labeled placeholder in place of any missing image, so no broken tiles.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Russinovich</b><span class="dom">know what runs underneath</span><span class="verdict improved">Improved</span></div>
-      <p class="said">The raw screenshots ran 2,160×12,000 px and about 2.9&nbsp;MB each. Scroll handlers fired on every frame.</p>
-      <p class="did">Optimized images to web sizes (about 0.4&nbsp;MB), added <code class="inline">loading="lazy"</code>, batched all scroll work in one <code class="inline">requestAnimationFrame</code>, and gated every effect behind <code class="inline">prefers-reduced-motion</code>.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Willison / Hamel</b><span class="dom">verify, do not trust</span><span class="verdict improved">Improved</span></div>
-      <p class="said">The code snippets, the commit hashes, and the 187-commit count all had to be real.</p>
-      <p class="did">Every snippet is pasted verbatim from the source repos. Every wall cites a real hash from <code class="inline">git log</code>. I computed the counts, not guessed them. A headless render confirmed <b>0 JS errors</b>.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Naval</b><span class="dom">earns its complexity</span><span class="verdict improved">Improved</span></div>
-      <p class="said">The brief said to pull relevant images from the web. Stock photos add cost and copyright risk.</p>
-      <p class="did">Dropped third-party imagery. The real dashboards are the story's own evidence. Decoration is CSS. Fewer moving parts, zero licensing risk.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Sean Grove</b><span class="dom">the spec is the real artifact</span><span class="verdict pass">Pass</span></div>
-      <p class="said">Intent needs a home when the code drifts.</p>
-      <p class="did">The brief and the plan are committed in <code class="inline">/input</code> and linked from the page. The repo contains the spec behind it.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Context Engineering</b><span class="dom">curate what the AI sees</span><span class="verdict pass">Pass</span></div>
-      <p class="said">The next agent needs the rules without re-deriving them.</p>
-      <p class="did">Scoped <code class="inline">.github/copilot-instructions.md</code> and <code class="inline">AGENTS.md</code>, each pointing at the council. Small, high-signal, not one giant file.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Steve Yegge</b><span class="dom">you review, not type</span><span class="verdict pass">Pass</span></div>
-      <p class="said">Scope stays visible and decisions surface for approval.</p>
-      <p class="did">This document frames the work for your review, and the judgment calls (dark default, dropping stock images) are named here for you to overrule.</p></div>
-
-    <div class="review glass reveal"><div class="rh"><b>Geoffrey Litt</b><span class="dom">malleable software for non-engineers</span><span class="verdict pass">Pass</span></div>
-      <p class="said">You change this yourself later, in plain language.</p>
-      <p class="did">Vanilla, sectioned, commented. Copy edits are plain HTML. The CSS is grouped by feature with header comments. No specialist required.</p></div>
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Root cause</span><h3>GitHub Pages refused to deploy</h3></div>
+      <p class="fix">Pages needs an explicit enable and a deploy from a workflow. The first pushes
+      assumed it worked. The fix was an explicit deploy workflow with auto-enablement and a
+      two-attempt retry.</p>
+      <p class="lesson">Live is a feature you build, not a checkbox you tick.</p>
+      <p class="cite">wc26-bracket 27cece7 · my-wc26-bracket 965af7d</p>
+    </div>
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Root cause</span><h3>The sync bot did not trigger the deploy</h3></div>
+      <p class="fix">A push made with the built-in token never fires other workflows, by design. So
+      the site stopped redeploying after each sync. The fix was to dispatch the deploy from the sync
+      job, with the <code class="inline">actions: write</code> permission.</p>
+      <p class="lesson">Automation has blast radius. Know what your bot triggers and what it does not.</p>
+      <p class="cite">wc26-bracket 7d24710 · 9bab6f6</p>
+    </div>
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Root cause</span><h3>The test read live data</h3></div>
+      <p class="fix">The golden test first compared against live results, so every finished game
+      broke the build for no bug. Freezing the inputs into <code class="inline">tests/fixtures/</code>
+      made it hermetic. It fails only on a code change.</p>
+      <p class="lesson">A test tied to the outside world is a pager crying wolf.</p>
+      <p class="cite">sled-mywcbracket 003c056</p>
+    </div>
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Root cause</span><h3>Shared storage wiped edits</h3></div>
+      <p class="fix">Viewing a demo or a shared link reused the same storage as your own bracket, so
+      peeking at another board erased your edits. The fix stashes your state before showing a
+      borrowed bracket, restores it after, and keeps viewing read-only.</p>
+      <p class="lesson">The scariest bugs are silent. No surprise data loss, ever.</p>
+      <p class="cite">my-wc26-bracket 6f0d64d · sled-mywcbracket 97e3c67</p>
+    </div>
+    <div class="wall glass reveal win">
+      <div class="wl"><span class="broke" style="color:var(--win-ink)">Fixed</span><h3>Eight blank cells in the bracket map</h3></div>
+      <p class="fix">The actual-path view read from the pick tree, so busted picks left holes. The
+      rebuild reads each slot from results, with a "Winner M97" placeholder for undecided games.</p>
+      <p class="lesson">Derive from the source of truth, not a stale copy of it.</p>
+      <p class="cite">sled-mywcbracket f60c0f2 · wc26-bracket 1b4aa94</p>
+    </div>
   </div>
 </section>
 
 <hr class="hr wrap">
 
-<!-- ============ REVISIONS ============ -->
-<section class="wrap" id="revisions">
-  <span class="section-label reveal">Part 4 · What the review changed</span>
-  <h2 class="reveal">The revisions I made because of it</h2>
-  <p class="lede maxch reveal">A review changing nothing is theater. These landed <em>before</em>
-  ship, straight from the voices above.</p>
-  <div class="grid g2 mt3">
-    <div class="card glass reveal"><h3>Accessibility</h3><p>Skip-to-content link, visible focus rings, honest alt text, and a graceful placeholder for any image failing to load. <span class="muted">Hanselman</span></p></div>
-    <div class="card glass reveal d1"><h3>Performance</h3><p>Screenshots optimized about 7× smaller, lazy-loaded and async-decoded. Scroll work batched in one rAF. Motion off under reduced-motion. <span class="muted">Russinovich</span></p></div>
-    <div class="card glass reveal"><h3>Copyright and leverage</h3><p>No stock photos or FIFA, MS, or GitHub marks. Only real screenshots and CSS. Less risk, less weight, more honest. <span class="muted">Naval</span></p></div>
-    <div class="card glass reveal d1"><h3>Truthfulness</h3><p>Verbatim-only code, real commit hashes, computed metrics, and a 0-error headless render check. <span class="muted">Willison</span></p></div>
-    <div class="card glass reveal"><h3>Brand consistency</h3><p>Tried respecting system light and dark, then kept sled's dark default, its signature look, with a manual toggle. Flagged for you. <span class="muted">Yegge</span></p></div>
-    <div class="card glass reveal d1"><h3>Spec in the repo</h3><p>Brief and plan committed to <code class="inline">/input</code> and linked, so intent survives the code. <span class="muted">Grove</span></p></div>
-  </div>
-</section>
-
-<hr class="hr wrap">
-
-<!-- ============ LEARNINGS ============ -->
+<!-- LEARN + LIMITS -->
 <section class="wrap" id="learn">
-  <span class="section-label reveal">Part 5 · Learning moments</span>
-  <h2 class="reveal">The transferable lessons</h2>
-  <p class="lede maxch reveal">Strip away the World Cup and these are the ideas worth keeping,
-  each one ELI5 and technical, because you asked to learn both.</p>
-
-  <div class="mt3 grid" style="gap:16px">
+  <span class="section-label reveal">What to keep</span>
+  <h2 class="reveal">Transferable principles</h2>
+  <p class="lead reveal"><b>Lead voice: Naval.</b> Strip away the World Cup, and these remain.</p>
+  <div class="mt3 grid" style="gap:14px">
     <div class="glass card reveal"><h3>1 · The spec is the product</h3>
-      <div class="eli5"><span class="lens e">ELI5</span><p>Write down exactly what "good" looks like first. The instructions are the real thing you make. The code is what pops out.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>A precise brief (Goal, Context, Source, Expectations) is a reusable, model-agnostic artifact. Plans and code regenerate from it. When code drifts, the spec is the source of truth you diff against.</p></div>
-    </div>
-    <div class="glass card reveal"><h3>2 · The URL is the database</h3>
-      <div class="eli5"><span class="lens e">ELI5</span><p>A link carries the whole thing inside it. If the secret part never reaches any computer but your friend's, nothing leaks.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>31 picks = 31 bits → <code class="inline">base64url(JSON)</code> in the URL <em>fragment</em>. By spec, fragments never go in HTTP requests, so a share is zero-backend and privacy is structural, not policy.</p></div>
-    </div>
-    <div class="glass card reveal"><h3>3 · Tests must be hermetic</h3>
-      <div class="eli5"><span class="lens e">ELI5</span><p>Do not grade your homework against a scoreboard changing every day, or you fail every time a real game ends. Freeze the answer key.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>The golden test first compared against live results and flapped on every match. Freezing inputs to <code class="inline">tests/fixtures/</code> made it a deterministic regression eval, failing only on a code change.</p></div>
-    </div>
-    <div class="glass card reveal"><h3>4 · Derive from the source of truth</h3>
-      <div class="eli5"><span class="lens e">ELI5</span><p>Show what happened, not a copy of your guess. When a guess was wrong, the copy leaves holes.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>The actual-path bracket read from the user's pick tree, so busted picks left 8 blank slots. Rebuilt to read each slot from results, with placeholders for undecided games.</p></div>
-    </div>
-    <div class="glass card reveal"><h3>5 · Automation has blast radius</h3>
-      <div class="eli5"><span class="lens e">ELI5</span><p>Robots you build step on each other by mistake. Know exactly what each one pushes.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>Commits made with the default <code class="inline">GITHUB_TOKEN</code> never trigger other workflows, so the site stopped redeploying. The fix. An explicit <code class="inline">gh workflow run</code> dispatch plus <code class="inline">actions: write</code>.</p></div>
-    </div>
-    <div class="glass card reveal"><h3>6 · Cheap models type, expensive models think</h3>
-      <div class="eli5"><span class="lens e">ELI5</span><p>Have your smartest helper plan and check the work. Let faster helpers do the typing in between. You stay the boss who approves.</p></div>
-      <div class="tech"><span class="lens t">Technical</span><p>Brief → strong model plans → human review → cheaper models execute → strong model reviews → human approves. The expensive model reasons twice, plan and grade. Throughput comes from the cheaper executors.</p></div>
-    </div>
+      <p class="muted">A precise brief is a reusable artifact. Plans and code regenerate from it. When code drifts, the spec is the source of truth you diff against.</p></div>
+    <div class="glass card reveal"><h3>2 · Derive, do not hardcode</h3>
+      <p class="muted">Compute the output from the data. A hand-edit drifts the moment the data changes. Derivation keeps the whole thing in sync for free.</p></div>
+    <div class="glass card reveal"><h3>3 · A pure function is testable</h3>
+      <p class="muted">Same inputs, same output, no side effects. It let a golden test lock a browser port to the original, byte for byte.</p></div>
+    <div class="glass card reveal"><h3>4 · Tests must be hermetic</h3>
+      <p class="muted">Freeze the inputs. A test reading live data fails for reasons no bug caused, and you learn to ignore it.</p></div>
+    <div class="glass card reveal"><h3>5 · The URL holds the state</h3>
+      <p class="muted">31 picks are 31 bits. Packed into a fragment, they never reach a server, so a share needs no backend and leaks nothing.</p></div>
+    <div class="glass card reveal"><h3>6 · Know what your automation pushes</h3>
+      <p class="muted">Bots step on each other. A push with the default token does not trigger other workflows. Set permissions on purpose.</p></div>
+  </div>
+
+  <div class="glass card mt3 reveal">
+    <h3>Honest limits</h3>
+    <ul class="next-list">
+      <li>The $0 cost holds because the browser does the work and GitHub serves static files. Heavy write traffic would need a different design.</li>
+      <li>A link is the data, so it cannot be revoked. The mitigation is a share-as alias, not a delete button.</li>
+      <li>Rivals live on one device. Cross-device sync is out of scope, on purpose.</li>
+      <li>If I did it again, I would freeze the test inputs on day one and set the deploy permissions up front. Most walls were CI, not code.</li>
+    </ul>
   </div>
 
   <div class="cta glass reveal mt3">
-    <h2>If you remember one thing</h2>
-    <p class="lede maxch center">Set the vision, write the brief, and keep judgment in the loop.
-    The tools change. The loop is the durable skill, and it turned a spreadsheet into three live
-    apps in a weekend.</p>
+    <h2>This is how it was built</h2>
+    <p class="lede maxch center">One data contract, three runtimes, and a bracket ending inside
+    a link. Read the story for the narrative, or open the repos and run it yourself.</p>
     <div class="cta-row" style="justify-content:center;margin-top:22px">
       <a class="btn primary" href="index.html">Read the full story</a>
+      <a class="btn ghost" href="https://github.com/eriic-builds/sled-mywcbracket" target="_blank" rel="noopener">Open the code</a>
       <a class="btn ghost" href="https://github.com/eriic-builds/bracket-journey/blob/main/input/brief.md" target="_blank" rel="noopener">See the brief</a>
-      <a class="btn ghost" href="https://github.com/eriic-builds/bracket-journey/blob/main/input/plan.md" target="_blank" rel="noopener">See the plan</a>
     </div>
   </div>
 </section>
 
 <footer class="footer wrap">
   <div class="frow">
-    <div><b>Project Review</b>. The last look at The Bracket Journey.<br>
-      <span class="muted">A Technical Taste Council review by <a href="https://github.com/eriic-builds" target="_blank" rel="noopener">@eriic-builds</a>, written with the GitHub Copilot CLI.</span></div>
-    <div class="muted" style="text-align:right">Explained ELI5 &amp; technically · MIT · © 2026</div>
+    <div><b>How it was built</b>. A technical deep dive of
+      <a href="https://github.com/eriic-builds" target="_blank" rel="noopener">@eriic-builds</a>'s
+      World Cup bracket apps.<br>
+      <span class="muted">Every code snippet is verbatim from the source repos. Read
+      <a href="index.html">the story</a> for the narrative.</span></div>
+    <div class="muted" style="text-align:right">Explained plainly and technically · MIT · © 2026</div>
   </div>
 </footer>
 

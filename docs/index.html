@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From an Excel attachment to a live app in six days — Eric Lam</title>
+<meta name="description" content="The build story of how an emailed World Cup bracket became three live, self-updating, zero-backend web apps in one weekend — told as a story and a real architecture explainer.">
+<link rel="canonical" href="https://eriic-builds.github.io/bracket-journey/">
+<meta property="og:title" content="From an Excel attachment to a live app in six days">
+<meta property="og:description" content="A build story — and a real architecture explainer — of three live, zero-backend World Cup dashboards built in a weekend with GitHub Copilot.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://eriic-builds.github.io/bracket-journey/">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://eriic-builds.github.io/bracket-journey/assets/og.png">
+<meta name="twitter:image" content="https://eriic-builds.github.io/bracket-journey/assets/og.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+<link rel="stylesheet" href="css/journey.css">
+</head>
+<body>
+<a class="skip" href="#payoff">Skip to the story</a>
+
+<!-- ============================== NAV ============================== -->
+<nav class="nav" aria-label="Section navigation">
+  <a class="brand" href="#top" aria-label="The Bracket Journey — top">
+    <span class="orb" aria-hidden="true"></span>
+    <span>The Bracket Journey<small>Excel → live app, in six days</small></span>
+  </a>
+  <div class="dots">
+    <a href="#payoff">Payoff</a>
+    <a href="#spark">Spark</a>
+    <a href="#mine">Make it mine</a>
+    <a href="#theirs">Make it theirs</a>
+    <a href="#social">Make it social</a>
+    <a href="#method">Method</a>
+    <a href="#walls">Walls</a>
+  </div>
+  <div class="navcta">
+    <button id="themeBtn" class="iconbtn" type="button" aria-label="Toggle theme">☀️</button>
+    <a class="btn ghost sm" href="https://github.com/eriic-builds/bracket-journey" target="_blank" rel="noopener">GitHub</a>
+    <a class="btn primary sm" href="https://eriic-builds.github.io/sled-mywcbracket/" target="_blank" rel="noopener">Open the app</a>
+  </div>
+</nav>
+
+<!-- ============================== HERO ============================== -->
+<header class="hero wrap" id="top">
+  <div class="reveal in">
+    <span class="kicker">A build story · July 2026</span>
+    <h1 class="mt2">From an Excel attachment to a <span class="grad-text">live app</span> in six days.</h1>
+    <p class="lede maxch">Last week a leader in my org asked if he could share my side project
+    with everyone. Six days earlier, that project was a spreadsheet in my inbox. This is the
+    story of what happened in between — told two ways at once: as the story, and as <em>exactly
+    how it works</em>.</p>
+
+    <div class="herostats" role="list" aria-label="Project at a glance">
+      <div class="stat" role="listitem"><b>6</b><span>days</span></div>
+      <div class="stat" role="listitem"><b>3</b><span>public repos</span></div>
+      <div class="stat" role="listitem"><b>187</b><span>commits</span></div>
+      <div class="stat" role="listitem"><b>$0</b><span>a month</span></div>
+      <div class="stat" role="listitem"><b>1</b><span>builder</span></div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn primary" href="#payoff">Read the story</a>
+      <a class="btn ghost" href="#method">Skip to the method</a>
+    </div>
+    <div class="scrollcue"><span class="dn">↓</span> the payoff first — then how it was built</div>
+  </div>
+</header>
+
+<!-- reverse-scroll accent -->
+<div class="reverse-strip" aria-hidden="true">
+  <div class="track" data-speed="0.12">
+    <span>data/*.json</span><span>build_dashboard.py</span><span>fetch_results.py</span>
+    <span>GitHub Actions ×3/day</span><span>SheetJS</span><span>renderDashboard()</span>
+    <span>golden test</span><span>#b=base64url(JSON)</span><span>localStorage</span>
+    <span>zero backend</span><span>$0/mo</span><span>data/*.json</span><span>build_dashboard.py</span>
+    <span>fetch_results.py</span><span>GitHub Actions ×3/day</span><span>SheetJS</span>
+    <span>renderDashboard()</span><span>golden test</span><span>#b=base64url(JSON)</span>
+    <span>localStorage</span><span>zero backend</span><span>$0/mo</span>
+  </div>
+</div>
+
+<!-- ============================== TL;DR ============================== -->
+<section class="wrap tight" aria-label="The 30-second version">
+  <div class="tldr glass reveal">
+    <span class="section-label">The 30-second version</span>
+    <div class="row">
+      <span class="n">1</span>
+      <p class="mb0"><b>What.</b> An emailed Excel bracket became three live, self-updating,
+      <b>zero-backend</b> World Cup dashboards — personal, then shareable, then social — all
+      running in the browser for <b>$0/month</b>.</p>
+    </div>
+    <div class="row">
+      <span class="n">2</span>
+      <p class="mb0"><b>How I worked.</b> I stopped prompting and started <b>briefing</b>: a
+      four-part spec (Goal · Context · Source · Expectations), staged plans I reviewed, cheaper
+      models doing the mechanical work, and a <b>Technical Taste Council</b> making the judgment
+      calls. The spec was the product; the code was its output.</p>
+    </div>
+    <div class="row">
+      <span class="n">3</span>
+      <p class="mb0"><b>Proof.</b> Three public repos, one live app you can open right now, and
+      every decision preserved in commit history.</p>
+    </div>
+    <div class="evidence">
+      <a class="chip" href="https://github.com/eriic-builds/wc26-bracket" target="_blank" rel="noopener"><span class="k">repo 1</span> wc26-bracket <span class="k">· 125 commits</span></a>
+      <a class="chip" href="https://github.com/eriic-builds/my-wc26-bracket" target="_blank" rel="noopener"><span class="k">repo 2</span> my-wc26-bracket <span class="k">· 19</span></a>
+      <a class="chip" href="https://github.com/eriic-builds/sled-mywcbracket" target="_blank" rel="noopener"><span class="k">repo 3</span> sled-mywcbracket <span class="k">· 43</span></a>
+      <a class="chip" href="https://eriic-builds.github.io/sled-mywcbracket/" target="_blank" rel="noopener">🔴 Open the live app</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== PAYOFF ============================== -->
+<section class="wrap" id="payoff">
+  <div class="split">
+    <div class="reveal">
+      <span class="section-label">The payoff</span>
+      <p class="wordreveal pull">A coworker taps one button. The standings reshuffle. No login,
+      no server, and nobody's name is exposed anywhere they didn't choose.</p>
+      <p class="mt2">Here's the moment that made it real. A coworker opens a link I texted them.
+      No install, no instructions. Their screen fills with a live World Cup dashboard — my
+      bracket, scored against real match results that update themselves three times a day. One
+      button: <b>“Add to my leaderboard.”</b> They tap it, and now we're ranked against each
+      other. Every match that finishes reshuffles the standings automatically.</p>
+      <p><b>Total running cost: zero dollars, forever.</b> That's not a shortcut — it turned out
+      to be the whole design.</p>
+      <p class="muted">Hi everyone — welcome. I'm Eric, a Cloud Solution Architect at Microsoft,
+      which means I get to help people make progress with AI. This project was me turning that
+      lens on myself: set a vision, understand the outcome, and use every tool available to shape
+      it into something real. Let me show you how it went — so you can build it too.</p>
+    </div>
+    <figure class="shot reveal d1">
+      <img data-shot="sled-leaderboard.png" src="assets/shots/sled-leaderboard.png" loading="lazy" decoding="async"
+        alt="The zero-backend leaderboard: coworkers ranked by live score, with a per-rival diff of games still to play.">
+      <figcaption class="cap">The local leaderboard — everyone you've added, ranked live, with a
+      per-rival “where we differ” list. Stored only in your browser.</figcaption>
+    </figure>
+  </div>
+
+  <div class="glass card mt3 reveal">
+    <h3>Where does everything actually live?</h3>
+    <div class="repos mt1">
+      <table>
+        <tbody>
+          <tr><td><b>Your bracket</b></td><td class="muted">Your browser's storage — your device, not ours</td></tr>
+          <tr><td><b>A share link</b></td><td class="muted">Entirely inside the URL you send — nothing is written anywhere when you make it</td></tr>
+          <tr><td><b>Rivals you've added</b></td><td class="muted">Your browser's storage — same deal</td></tr>
+          <tr><td><b>Live match results</b></td><td class="muted">One JSON file on GitHub, updated 3× a day by a bot</td></tr>
+          <tr><td><b>Server-side data</b></td><td class="muted">None. There is no server.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============================== CH.1 SPARK ============================== -->
+<section class="wrap chapter" id="spark">
+  <div class="chead reveal"><span class="cnum">Chapter 1 · The spark</span></div>
+  <h2 class="reveal">An Excel sheet in my inbox</h2>
+  <div class="split rev mt2">
+    <figure class="shot reveal d1">
+      <img data-shot="sled-bracketmap.png" src="assets/shots/sled-bracketmap.png" loading="lazy" decoding="async"
+        alt="The BracketMap: a glassmorphism map drawing your predicted path through the whole knockout tree.">
+      <figcaption class="cap">The BracketMap — the piece I was proudest of. It draws your whole
+      predicted path and overlays what actually happened.</figcaption>
+    </figure>
+    <div class="reveal">
+      <p class="mt0">Every big build starts as a small annoyance. A leader in my org kicked off a
+      World Cup bracket challenge — the classic office version: he emailed out an Excel workbook,
+      everyone filled in their picks (31 knockout games, a champion, a tiebreaker) and emailed it
+      back, and he tallied scores as the tournament went.</p>
+      <p>I filled mine out like everyone else. But staring at that spreadsheet, I couldn't stop
+      seeing what it <em>could</em> be. All the drama of a World Cup — the upsets, the busted
+      picks, the “my champion is still alive” tension — flattened into cells. The data was
+      begging to be visual.</p>
+      <h3 class="mt2">The first move: design before code</h3>
+      <p>I opened <b>Microsoft Cowork</b> and designed what I wished existed: a glassmorphism
+      dashboard, KPI cards for points confirmed and points still attainable, and that BracketMap.
+      The original plan was modest — view it in Cowork, schedule a sync for new results, done.</p>
+      <p>It wasn't done. Instead of keeping it as a prompt, I packaged the whole design as a
+      <b>markdown build kit</b> — a spec anyone could hand to an AI and get the same dashboard
+      with their own picks. Version 6, 7, 8, each tighter. I didn't know the term yet, but I'd
+      stumbled into the idea that shaped everything after: <b>the spec is the real product. The
+      code is just its output.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CH.2 MAKE IT MINE ============================== -->
+<section class="wrap chapter" id="mine">
+  <div class="chead reveal">
+    <span class="cnum">Chapter 2 · Make it mine</span>
+    <span class="repochip">wc26-bracket</span>
+    <span class="muted" style="font-size:.82rem">125 commits · Jul 2–7</span>
+  </div>
+  <h2 class="reveal">Crossing into GitHub</h2>
+  <div class="split mt2">
+    <div class="reveal">
+      <p class="mt0">Hosting something on GitHub Pages had been on my someday-list for a long
+      time. This was finally the excuse. If my dashboard lived at a URL, I could check it from
+      anywhere, the data could refresh itself, and — this part mattered — the entire build would
+      be preserved in commit history, reverse-engineerable by anyone, including future me.</p>
+      <p>So I opened GitHub Copilot and we started. What began as one hardcoded HTML file got
+      pulled apart, deliberately, into an actual architecture:</p>
+      <ul>
+        <li><b>The data layer</b> — picks and live results extracted into <code class="inline">data/*.json</code>, so content and presentation stopped being tangled.</li>
+        <li><b>The generator</b> — <code class="inline">build_dashboard.py</code>, turning picks + results into the finished page.</li>
+        <li><b>The sync engine</b> — <code class="inline">fetch_results.py</code>, pulling finished games from FIFA's public feed.</li>
+        <li><b>The automation</b> — a GitHub Action running the sync 3×/day, committing results and redeploying.</li>
+      </ul>
+      <p><b>125 commits in six days.</b> That number isn't a flex — it's what learning in public
+      looks like. Every commit is me figuring out git, workflows, CI, and deployment by actually
+      doing it, with the receipts preserved.</p>
+      <p class="pull grad-text" style="font-size:1.35rem">I wasn't maintaining a webpage. I'd
+      built a small machine that keeps itself current.</p>
+    </div>
+    <figure class="shot reveal d1">
+      <img data-shot="wc26-view.png" src="assets/shots/wc26-view.png" loading="lazy" decoding="async"
+        alt="The wc26-bracket dashboard: bracket map, KPI cards, and a round-by-round scorecard, generated by Python and served on GitHub Pages.">
+      <figcaption class="cap">Repo 1 — one person's dashboard, generated by Python and kept live
+      by a sync bot on GitHub Pages.</figcaption>
+    </figure>
+  </div>
+
+  <details class="hood reveal">
+    <summary><span class="tag">Under the hood</span> The machine that builds itself <span class="chev">▾</span></summary>
+    <div class="hbody">
+      <p>Three JSON files are the single source of truth. The generator loads them and
+      <em>derives</em> every pixel — nothing about the story is hardcoded, so every rebuild stays
+      in sync with the data.</p>
+      <div class="codecap">wc26-bracket/scripts/build_dashboard.py</div>
+      <pre class="code">_DATA=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"data")
+def _load(_name):
+    with open(os.path.join(_DATA,_name),encoding="utf-8") as _fh: return json.load(_fh)
+P=_load("picks.json"); L=_load("live.json"); T=_load("topology.json")</pre>
+
+      <div class="diagram mt1">
+        <div class="flow">
+          <div class="node mono">picks.json<small>your bracket</small></div>
+          <div class="node mono">live.json<small>synced results</small></div>
+          <div class="node mono">topology.json<small>fixed tree</small></div>
+          <div class="arrow">→</div>
+          <div class="node accent">build_dashboard.py<small>pure derivation</small></div>
+          <div class="arrow">→</div>
+          <div class="node">index.html<small>self-contained</small></div>
+          <div class="arrow">→</div>
+          <div class="node accent">GitHub Pages<small>the live site</small></div>
+        </div>
+      </div>
+
+      <p class="mt2">The sync is a bot on a schedule. It fetches finished games, writes them into
+      <code class="inline">live.json</code>, and redeploys — three times a day, timed to after
+      each match block. I can close my laptop and the board stays current.</p>
+      <div class="codecap">wc26-bracket/.github/workflows/sync-results.yml — the cron</div>
+      <pre class="code">schedule:
+  - cron: "0 22 * * *"   # ~6:00 PM ET
+  - cron: "30 1 * * *"   # ~9:30 PM ET
+  - cron: "0 6 * * *"    # ~2:00 AM ET</pre>
+    </div>
+  </details>
+</section>
+
+<!-- ============================== CH.3 MAKE IT THEIRS ============================== -->
+<section class="wrap chapter" id="theirs">
+  <div class="chead reveal">
+    <span class="cnum">Chapter 3 · Make it theirs</span>
+    <span class="repochip">my-wc26-bracket</span>
+    <span class="muted" style="font-size:.82rem">19 commits · Jul 7</span>
+  </div>
+  <h2 class="reveal">The wall: nobody follows instructions</h2>
+  <div class="split rev mt2">
+    <figure class="shot reveal d1">
+      <img data-shot="my-view.png" src="assets/shots/my-view.png" loading="lazy" decoding="async"
+        alt="my-wc26-bracket: drop your own Excel file and your own scored dashboard appears, entirely in the browser.">
+      <figcaption class="cap">Repo 2 — drop your Excel bracket (or tap winners) and <em>your</em>
+      board appears. Your file never leaves your device.</figcaption>
+    </figure>
+    <div class="reveal">
+      <p class="mt0">Proud of the build kit, I shared it. And then I watched what happened:
+      <em>nothing</em>. The person I shared it with was never going to walk through repo setup,
+      Python scripts, and deployment to get their own dashboard. Of course they weren't — I
+      wouldn't have either, a month earlier.</p>
+      <p>That stung for about an hour, and then it reframed the whole problem. The friction wasn't
+      in my instructions — it was in the <em>existence</em> of instructions.</p>
+      <p class="pull">Ship the product, not the instructions.</p>
+      <p>The goal became: you drop in your Excel bracket, and your dashboard just appears.
+      Everything the Python generator did on my machine now had to happen in the visitor's
+      browser instead. Copilot and I ported the whole render engine to client-side JavaScript —
+      parsing the workbook with SheetJS, validating it, scoring it live, drawing the map. For
+      people without a spreadsheet, we added a click-to-pick builder. The tool stopped being mine
+      and became anyone's.</p>
+    </div>
+  </div>
+
+  <details class="hood reveal">
+    <summary><span class="tag">Under the hood</span> A pure function — and a test that proves it <span class="chev">▾</span></summary>
+    <div class="hbody">
+      <p>The port is one honest idea: the same inputs, the same output, expressed as a
+      <b>pure function</b>. Give it your picks, the live results, and the fixed tree, and it
+      returns the scored dashboard state — no side effects, no globals.</p>
+      <div class="codecap">my-wc26-bracket / sled-mywcbracket · docs/js/render.js</div>
+      <pre class="code">export function computeState(picks, live, topology) {
+  // → the fully scored board: every slot, KPI, and card is derived from here
+}</pre>
+      <div class="diagram mt1">
+        <div class="flow">
+          <div class="node mono">your .xlsx</div>
+          <div class="arrow">→</div>
+          <div class="node accent">parse-excel.js<small>SheetJS, in-browser</small></div>
+          <div class="arrow">→</div>
+          <div class="node accent">render.js<small>computeState()</small></div>
+          <div class="arrow">→</div>
+          <div class="node">your dashboard<small>DOM</small></div>
+        </div>
+      </div>
+      <p class="mt2">A port this size is exactly where subtle bugs breed. So we built a
+      <b>golden test</b>: the JavaScript engine's output is compared <em>byte-for-byte</em>
+      against the original Python's. Not “looks the same” — <em>identical</em>. In hindsight
+      that's an eval: a regression gate that has caught real drift ever since, run against
+      <em>frozen</em> inputs so live results can never make it flap.</p>
+    </div>
+  </details>
+</section>
+
+<!-- ============================== CH.4 MAKE IT SOCIAL ============================== -->
+<section class="wrap chapter" id="social">
+  <div class="chead reveal">
+    <span class="cnum">Chapter 4 · Make it social</span>
+    <span class="repochip">sled-mywcbracket</span>
+    <span class="muted" style="font-size:.82rem">43 commits · Jul 7–8</span>
+  </div>
+  <h2 class="reveal">The big idea: social, with no backend</h2>
+  <div class="split mt2">
+    <div class="reveal">
+      <p class="mt0">Individual dashboards worked. But brackets are a social game — the whole
+      point is seeing how you stack up against your friends. Every obvious way to build that
+      meant a backend: accounts, a database, hosting bills, and — the real dealbreaker — a
+      central place where my coworkers' real names would live, whether they opted in or not.</p>
+      <p>The question I kept turning over: could a share link itself <em>carry</em> the bracket,
+      so adding someone to your leaderboard never touches a server at all?</p>
+      <p class="pull grad-text">It fits in a link.</p>
+      <p>A bracket is 31 win-or-lose choices — 31 bits — plus a display name and a tiebreaker.
+      Encoded, that's about 140 characters riding in the URL <em>fragment</em> (the part after
+      <code class="inline">#</code>). And by HTTP's own rules, browsers <b>never send the fragment
+      to any server</b>. Not to GitHub, not to anyone. The privacy isn't a policy — it's physics.</p>
+    </div>
+    <figure class="shot reveal d1">
+      <img data-shot="sled-share.png" src="assets/shots/sled-share.png" loading="lazy" decoding="async"
+        alt="The share popover: your whole bracket packed into a short URL, with a 'share as' alias field.">
+      <figcaption class="cap">Repo 3 — “Share link” packs your whole bracket into the URL. Edit
+      the “share as” name first if you'd rather appear as an alias.</figcaption>
+    </figure>
+  </div>
+
+  <details class="hood reveal">
+    <summary><span class="tag">Under the hood</span> The whole bracket, encoded into a URL <span class="chev">▾</span></summary>
+    <div class="hbody">
+      <p>The wire format is deliberately boring and debuggable: base64url of a tiny JSON object.
+      The clever part is the <em>bit order</em> — later rounds depend on earlier picks, so encode
+      and decode must both walk the tree in the same canonical order.</p>
+      <div class="codecap">sled-mywcbracket/docs/js/share.js — encode</div>
+      <pre class="code">export function encodeShare(picks, topology) {
+  const S = deriveStructure(topology);
+  const sel = {};
+  picks.r32.forEach(m => { sel[m[0]] = m[4]; });
+  S.r16codes.forEach((c, j) => { sel[c] = picks.r16_win[j]; });
+  // …qf, sf, final…
+  let bits = "";
+  for (const c of codeOrder(S)) {
+    const [a, b] = teamsFor(S, c, sel);
+    bits += sel[c] === a ? "0" : "1";
+  }
+  const payload = { v: 1, b: bits, n: String(picks.entrant || ""), t: picks.tiebreaker | 0 };
+  return b64url(new TextEncoder().encode(JSON.stringify(payload)));
+}</pre>
+      <p>Decoding reverses it, then re-validates against the fixed tree. A truncated or
+      newer-version link fails with a friendly message instead of rendering garbage — Hanselman's
+      rule: every error says what broke.</p>
+      <div class="codecap">the wire format (dev-docs/SPEC.md)</div>
+      <pre class="code">#b=base64url( JSON { v:1, b:"&lt;31 chars of 0|1&gt;", n:"display name", t:tiebreaker } )</pre>
+
+      <div class="diagram mt1">
+        <div class="flow">
+          <div class="node">your picks</div>
+          <div class="arrow">→</div>
+          <div class="node accent mono">#b=…<small>in the URL fragment</small></div>
+          <div class="arrow">→</div>
+          <div class="node">recipient's browser<small>unpacks locally</small></div>
+          <div class="arrow">→</div>
+          <div class="node accent">their leaderboard<small>localStorage only</small></div>
+        </div>
+      </div>
+
+      <p class="mt2">Nothing is written when you generate a link. Rivals live in one browser key;
+      the sync bot only ever rewrites the shared results file.</p>
+      <div class="codecap">sled-mywcbracket/docs/js/storage.js — the keys</div>
+      <pre class="code">const KEY = "wcb.fan.picks.v1";        // the visitor's own bracket
+const KEY_SCORES = "wcb.scores.v3";     // their what-if overrides
+const KEY_STASH = "wcb.scores.stash";   // set aside while viewing someone else's link</pre>
+    </div>
+  </details>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============================== REPOS AT A GLANCE ============================== -->
+<section class="wrap tight" aria-label="The three repos at a glance">
+  <span class="section-label reveal">Three repos at a glance</span>
+  <div class="repos glass reveal">
+    <table>
+      <thead>
+        <tr><th>Repo</th><th>What it is</th><th class="num">Commits</th><th class="hidesm">Live</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a class="rn" href="https://github.com/eriic-builds/wc26-bracket" target="_blank" rel="noopener">wc26-bracket</a></td>
+          <td>A Python generator + a self-syncing results bot → one live dashboard on Pages.</td>
+          <td class="num">125</td>
+          <td class="hidesm"><a href="https://eriic-builds.github.io/wc26-bracket/" target="_blank" rel="noopener">open ↗</a></td>
+        </tr>
+        <tr>
+          <td><a class="rn" href="https://github.com/eriic-builds/my-wc26-bracket" target="_blank" rel="noopener">my-wc26-bracket</a></td>
+          <td>The engine ported to the browser: drop your Excel bracket, get your own board.</td>
+          <td class="num">19</td>
+          <td class="hidesm"><a href="https://eriic-builds.github.io/my-wc26-bracket/" target="_blank" rel="noopener">open ↗</a></td>
+        </tr>
+        <tr>
+          <td><a class="rn" href="https://github.com/eriic-builds/sled-mywcbracket" target="_blank" rel="noopener">sled-mywcbracket</a></td>
+          <td>The social edition: share as a link, compare on a local leaderboard — no backend.</td>
+          <td class="num">43</td>
+          <td class="hidesm"><a href="https://eriic-builds.github.io/sled-mywcbracket/" target="_blank" rel="noopener">open ↗</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================== METHOD ============================== -->
+<section class="wrap" id="method">
+  <span class="section-label reveal">Where the workflow leveled up</span>
+  <h2 class="reveal">I stopped prompting. I started briefing.</h2>
+  <p class="lede maxch reveal">By the third build I'd been reading what people actually shipping
+  with AI agents do, and the pattern is consistent: they don't prompt, they <b>brief</b>. So
+  before any code, I wrote one — and every brief since has followed the same four-part shape.</p>
+
+  <div class="gcse mt3">
+    <div class="g glass reveal"><div class="lt">G</div><h4>Goal</h4><p>The outcome, stated so sharply you'd know if you missed it.</p></div>
+    <div class="g glass reveal d1"><div class="lt">C</div><h4>Context</h4><p>Constraints, history, who it's for, what already exists.</p></div>
+    <div class="g glass reveal d2"><div class="lt">S</div><h4>Source</h4><p>The ground truth to build from — repos, data, prior art.</p></div>
+    <div class="g glass reveal d3"><div class="lt">E</div><h4>Expectations</h4><p>Acceptance criteria — what “done” looks like, verifiably.</p></div>
+  </div>
+
+  <h3 class="mt3 reveal">The division of labor that made a weekend possible</h3>
+  <div class="pipeline mt1">
+    <div class="pstep reveal"><span class="who me">Me</span> I write the brief</div>
+    <div class="pstep reveal"><span class="who ai">Fable 5</span> turns it into staged plans</div>
+    <div class="pstep reveal"><span class="who me">Me</span> I review &amp; adjust the plans</div>
+    <div class="pstep reveal"><span class="who cheap">Opus 4.8 · GPT 5.5</span> cheaper models execute the mechanical work</div>
+    <div class="pstep reveal"><span class="who ai">Fable 5</span> reviews the output</div>
+    <div class="pstep reveal"><span class="who me">Me</span> I approve each stage</div>
+  </div>
+  <p class="mt2 reveal">The expensive model does the thinking twice — once planning, once
+  reviewing — and the cheaper models do the typing. My job moved up a level: setting direction,
+  catching drift, and making the judgment calls.</p>
+
+  <div class="glass card mt3 reveal">
+    <h3>The quiet discipline underneath it</h3>
+    <p>None of this works without a way to keep a non-deterministic tool honest. In hindsight,
+    the pieces I reached for have names:</p>
+    <div class="grid g2 mt2">
+      <div class="voice"><b>Golden test → a regression eval</b><span>Byte-locks the render so no change ships by accident.</span></div>
+      <div class="voice"><b>“Fable 5 reviews” → a second-pass grader</b><span>The plan and the output are both checked, not just written.</span></div>
+      <div class="voice"><b>Taste Council → a rubric</b><span>Named voices score each decision against a domain.</span></div>
+      <div class="voice"><b>Privacy-by-design → a guardrail</b><span>The URL-fragment rule makes a leak physically impossible, not just discouraged.</span></div>
+    </div>
+  </div>
+
+  <h3 class="mt3 reveal">The Technical Taste Council</h3>
+  <p class="maxch reveal">My honest gap wasn't syntax — it was <em>taste</em>: knowing when
+  something is quietly over-engineered, badly named, or built for the wrong horizon. So I wrote a
+  council of nine named voices into the repo's instructions, each owning a domain, and had the AI
+  channel them on every non-trivial call.</p>
+  <div class="council mt2">
+    <div class="voice reveal"><b>Karpathy</b><span>Simplest thing that works; no abstraction without a reason now.</span></div>
+    <div class="voice reveal"><b>Hanselman</b><span>Name things for the next human; every error says what to do.</span></div>
+    <div class="voice reveal"><b>Russinovich</b><span>Know what's underneath; what breaks under load and bad input.</span></div>
+    <div class="voice reveal d1"><b>Willison / Hamel</b><span>Verify, don't trust; if a claim can be checked, check it.</span></div>
+    <div class="voice reveal d1"><b>Naval</b><span>Does this feature earn its complexity? Keep future options open.</span></div>
+    <div class="voice reveal d1"><b>Sean Grove</b><span>The spec is the real artifact; code is the byproduct.</span></div>
+    <div class="voice reveal d2"><b>Context Engineering</b><span>Curate what the AI sees; load the smallest high-signal set.</span></div>
+    <div class="voice reveal d2"><b>Steve Yegge</b><span>You're reviewing, not typing; frame work for approval.</span></div>
+    <div class="voice reveal d2"><b>Geoffrey Litt</b><span>Malleable software I can still change myself later.</span></div>
+  </div>
+
+  <div class="glass card mt3 reveal">
+    <h3>The calls I'm proudest of are the ones I <em>didn't</em> build</h3>
+    <ul class="next-list">
+      <li><b>No backend, even a tiny one.</b> Free tiers become a bill or a deprecation later; links + localStorage have no such cliff.</li>
+      <li><b>No “re-share someone else's bracket.”</b> Re-broadcasting a coworker's picks without consent is exactly the leak the whole design avoids.</li>
+      <li><b>Base64(JSON), not bit-packing.</b> ~140 chars fits any chat and is debuggable with <code class="inline">atob()</code>; the extra cleverness wasn't worth it.</li>
+    </ul>
+  </div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============================== WALLS ============================== -->
+<section class="wrap" id="walls">
+  <span class="section-label reveal">The walls</span>
+  <h2 class="reveal">Every single one taught me something</h2>
+  <p class="lede maxch reveal">A build story with no walls is a brochure. Here are the five that
+  actually stopped me — what broke, how I got past it, and the commit that proves it.</p>
+
+  <div class="mt3">
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Broke</span><h3>GitHub Pages refused to deploy</h3></div>
+      <p class="fix">The first pushes just… didn't publish. Pages needed to be explicitly enabled
+      and deployed from a workflow, not assumed. I switched to an explicit deploy workflow with
+      auto-enablement (and a two-attempt retry, because it was flaky).</p>
+      <p class="lesson">“It's live” is a feature you build, not a checkbox you tick.</p>
+      <p class="cite">wc26-bracket 27cece7 “fix: deploy pages from explicit workflow” · my-wc26-bracket 965af7d “fix: enable GitHub Pages auto-enablement in deploy workflow (#1)”</p>
+    </div>
+
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Broke</span><h3>My own sync bot pushed against me</h3></div>
+      <p class="fix">The sync committed new results with the default token — and GitHub, by design,
+      <em>doesn't</em> fire other workflows from those commits. So the site quietly stopped
+      redeploying. The fix: have the sync job explicitly dispatch the deploy, with the
+      <code class="inline">actions: write</code> permission to do it.</p>
+      <p class="lesson">Automation has blast radius; know what your bot is and isn't allowed to trigger.</p>
+      <p class="cite">wc26-bracket 7d24710 “fix: make auto-sync commits actually trigger a Pages deploy” · 9bab6f6 “ci: give the sync job actions:write so it can trigger the Pages deploy”</p>
+    </div>
+
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Broke</span><h3>My tests would have broken every match-day</h3></div>
+      <p class="fix">The golden test first compared against <em>live</em> results — which meant
+      every finished game would “break” the build for a reason that wasn't a bug. I froze the test
+      inputs into <code class="inline">tests/fixtures/</code> so the eval is hermetic: it only
+      fails when the <em>code</em> changes.</p>
+      <p class="lesson">A test that depends on the outside world isn't a test — it's a pager that cries wolf.</p>
+      <p class="cite">sled-mywcbracket 003c056 “Stage 0: pool pilot — hermetic golden snapshot, CI tests, CLAUDE.md/SPEC.md, pilot branding”</p>
+    </div>
+
+    <div class="wall glass reveal">
+      <div class="wl"><span class="broke">Broke</span><h3>Viewing the demo silently deleted my edits</h3></div>
+      <p class="fix">Opening the demo (or a shared link) reused the same storage as your own
+      bracket — so peeking at someone else's board could wipe your what-if edits. The fix: stash
+      your state before showing a borrowed bracket, restore it after, and make viewing strictly
+      view-only.</p>
+      <p class="lesson">The scariest bugs are the silent ones. No surprise data loss, ever.</p>
+      <p class="cite">my-wc26-bracket 6f0d64d “UX: demote Import to a restore link, demo is preview-only …” · sled-mywcbracket 97e3c67 “Stage 1: share links — … view-only mode”</p>
+    </div>
+
+    <div class="wall glass reveal win">
+      <div class="wl"><span class="broke" style="color:var(--win-ink)">Fixed</span><h3>Eight blank cells in the bracket map</h3></div>
+      <p class="fix">The “actual path” view read from your <em>pick</em> tree, so once your picks
+      busted, real advancers fell off and left holes. I rebuilt it to read each slot straight from
+      results — real occupant if decided, a dashed “Winner M97” placeholder if not — independent
+      of your picks.</p>
+      <p class="lesson">Derive from the source of truth, not from a stale copy of it.</p>
+      <p class="cite">sled-mywcbracket f60c0f2 “Rename to sled-mywcbracket + nav fixes + actual-path bracket rebuild” · wc26-bracket 1b4aa94 “Fix bracket map dropping actual advancers …”</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== IMPACT / NEXT ============================== -->
+<section class="wrap chapter">
+  <div class="chead reveal"><span class="cnum">The return</span></div>
+  <h2 class="reveal">Back to where it started</h2>
+  <div class="split mt2">
+    <div class="reveal">
+      <p class="mt0">The elixir I came back with wasn't the dashboard. It was a way of working I
+      can repeat on anything: <b>set a vision, understand the outcome, write the brief, and shape
+      it with judgment.</b></p>
+      <h3 class="mt2">What actually happened</h3>
+      <p>A leader in my org asked if he could share it broadly. Coworkers started opening each
+      other's links and comparing boards. For a weekend fan project, that's the traction that
+      matters — people chose to use it and to pass it on.</p>
+      <h3 class="mt2">What I'd measure next</h3>
+      <p class="muted">I'm honest that “a leader asked to share it” is a signal, not a metric. If I
+      kept going, I'd instrument the shares and the count of active leaderboards — the two numbers
+      that would tell me whether the social loop actually compounds.</p>
+    </div>
+    <div class="glass card reveal d1">
+      <h3>What I'd do differently — still learning</h3>
+      <ul class="next-list">
+        <li>Freeze the test inputs on <em>day one</em>, not after the first false alarm.</li>
+        <li>Decide the deploy + automation permissions up front — most of my walls were CI, not code.</li>
+        <li>Write the SPEC before the first line, every time; it saved the most time on repo 3.</li>
+      </ul>
+      <p class="muted mt2" style="font-size:.9rem">The codebase is public. If you see a better way,
+      I genuinely want to hear it — that's half the reason it's out in the open.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CTA ============================== -->
+<section class="wrap">
+  <div class="cta glass reveal">
+    <span class="orb" style="margin:0 auto 14px" aria-hidden="true"></span>
+    <h2>Set a vision. Understand the outcome. Build.</h2>
+    <p class="lede maxch center">That's the whole method — and it turned a spreadsheet into three
+    live apps in a weekend. Open it, read the code, take what's useful.</p>
+    <div class="cta-row" style="justify-content:center;margin-top:22px">
+      <a class="btn primary" href="https://eriic-builds.github.io/sled-mywcbracket/" target="_blank" rel="noopener">🔴 Open the live app</a>
+      <a class="btn ghost" href="https://github.com/eriic-builds/bracket-journey" target="_blank" rel="noopener">Read this repo</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== FOOTER ============================== -->
+<footer class="footer wrap">
+  <div class="frow">
+    <div>
+      <b>The Bracket Journey</b> — a build story by
+      <a href="https://github.com/eriic-builds" target="_blank" rel="noopener">@eriic-builds</a>.<br>
+      <span class="muted">Built with the GitHub Copilot CLI, guided by a Technical Taste Council.
+      The brief and plan that built this page live in <code class="inline">/input</code>.</span>
+    </div>
+    <div class="muted" style="text-align:right">
+      A fan project — not affiliated with FIFA, GitHub, or Microsoft.<br>
+      Match results from public records · MIT licensed · © 2026
+    </div>
+  </div>
+</footer>
+
+<script src="js/motion.js"></script>
+</body>
+</html>

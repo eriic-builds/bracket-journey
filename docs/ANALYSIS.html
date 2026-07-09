@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Review — how The Bracket Journey was built (and why)</title>
+<meta name="description" content="A Technical Taste Council review of the bracket-journey build: the plans, the codebase, what changed and why — explained ELI5 and technically.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
+<link rel="stylesheet" href="css/journey.css">
+<style>
+/* ---- analysis-only extras (design system comes from journey.css) ---- */
+.modebar{display:inline-flex;gap:2px;background:var(--hover);border:1px solid var(--border2);border-radius:999px;padding:3px}
+.modebar button{font:inherit;font-weight:700;font-size:.82rem;color:var(--muted);background:transparent;border:0;padding:7px 14px;border-radius:999px;cursor:pointer;transition:.15s}
+.modebar button.on{color:#04121a;background:var(--grad)}
+body.m-eli5 .tech{display:none}
+body.m-tech .eli5{display:none}
+.lens{display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.lens.e{color:var(--win-ink);background:rgba(0,178,145,.12);border:1px solid rgba(0,178,145,.3)}
+.lens.t{color:#7cc3ff;background:rgba(0,151,244,.12);border:1px solid rgba(0,151,244,.3)}
+.eli5,.tech{border-radius:14px;padding:14px 16px;margin-top:10px}
+.eli5{background:rgba(0,178,145,.06);border:1px solid rgba(0,178,145,.22)}
+.tech{background:rgba(0,151,244,.05);border:1px solid rgba(0,151,244,.2)}
+.eli5 p,.tech p{margin:.4em 0 0}
+/* phases */
+.phase{border-radius:var(--radius);padding:18px 18px 8px}
+.phase h4{margin:0 0 4px;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.phase .pnote{color:var(--muted);font-size:.84rem;margin:0 0 12px}
+.todo{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--border)}
+.todo:first-of-type{border-top:0}
+.todo .dot{width:18px;height:18px;border-radius:50%;flex:0 0 auto;margin-top:2px;display:grid;place-items:center;font-size:.7rem;font-weight:800}
+.todo .dot.done{background:var(--win);color:#04121a}
+.todo .tt{font-weight:700;font-size:.92rem}
+.todo .td{color:var(--muted);font-size:.83rem}
+.todo code{font-family:var(--mono);font-size:.8em;color:var(--text2)}
+/* review cards */
+.review{padding:18px 20px;border-radius:var(--radius)}
+.review+.review{margin-top:14px}
+.review .rh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.review .rh b{font-size:1.05rem}
+.review .dom{color:var(--muted);font-size:.82rem}
+.verdict{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:4px 11px;border-radius:999px}
+.verdict.pass{color:var(--win-ink);background:rgba(0,178,145,.12);border:1px solid rgba(0,178,145,.3)}
+.verdict.improved{color:var(--gold-ink);background:rgba(255,206,32,.12);border:1px solid rgba(255,206,32,.35)}
+.review .said{margin:.7em 0 0;color:var(--text2)}
+.review .did{margin:.5em 0 0}
+.review .did::before{content:"→ ";color:var(--win)}
+.legend2{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;color:var(--muted)}
+.filemap{font-family:var(--mono);font-size:.86rem;line-height:1.9;color:var(--text2)}
+.filemap .c{color:var(--muted)}
+.filemap b{color:var(--text)}
+</style>
+</head>
+<body class="m-both">
+<a class="skip" href="#plans">Skip to the review</a>
+
+<nav class="nav" aria-label="Section navigation">
+  <a class="brand" href="#top"><span class="orb" aria-hidden="true"></span>
+    <span>Project Review<small>The Bracket Journey · the last look</small></span></a>
+  <div class="dots">
+    <a href="#plans">Plans</a><a href="#codebase">Codebase</a><a href="#council">Council</a>
+    <a href="#revisions">Revisions</a><a href="#learn">Learnings</a>
+  </div>
+  <div class="navcta">
+    <button id="themeBtn" class="iconbtn" type="button" aria-label="Toggle theme">☀️</button>
+    <a class="btn ghost sm" href="index.html">← The story</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero wrap" id="top">
+  <div class="reveal in">
+    <span class="kicker">The last review · what / why / learnings</span>
+    <h1 class="mt2">How this got built — and <span class="grad-text">why</span>.</h1>
+    <p class="lede maxch">One last pass over the whole project: the plans and how they ran, the
+    codebase, and a <b>Technical Taste Council</b> review of the work — the same nine voices that
+    guided the build, now turned back on it. Every idea is explained two ways, so you can learn it
+    either level.</p>
+
+    <div class="glass card mt2" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span style="font-weight:700">Read it as:</span>
+      <div class="modebar" role="tablist" aria-label="Explanation depth">
+        <button data-mode="eli5" type="button">🧒 ELI5</button>
+        <button data-mode="both" class="on" type="button">📖 Both</button>
+        <button data-mode="tech" type="button">🔬 Technical</button>
+      </div>
+      <span class="muted" style="font-size:.86rem">Switch anytime — it re-flows the whole page.</span>
+    </div>
+
+    <div class="herostats mt3">
+      <div class="stat"><b>13</b><span>plans shipped</span></div>
+      <div class="stat"><b>9</b><span>council voices</span></div>
+      <div class="stat"><b>3</b><span>source repos</span></div>
+      <div class="stat"><b>0</b><span>build steps</span></div>
+      <div class="stat"><b>0</b><span>JS errors</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="reverse-strip" aria-hidden="true"><div class="track" data-speed="0.1">
+  <span>scaffold</span><span>design system</span><span>motion</span><span>timeline</span>
+  <span>screenshots</span><span>narrative</span><span>architecture</span><span>skim layer</span>
+  <span>assemble</span><span>a11y + perf</span><span>verify</span><span>ship</span>
+  <span>scaffold</span><span>design system</span><span>motion</span><span>timeline</span>
+  <span>screenshots</span><span>narrative</span><span>architecture</span><span>skim layer</span>
+  <span>assemble</span><span>a11y + perf</span><span>verify</span><span>ship</span>
+</div></div>
+
+<!-- ============ PLANS EXECUTION ============ -->
+<section class="wrap" id="plans">
+  <span class="section-label reveal">Part 1 · Plans execution</span>
+  <h2 class="reveal">From one brief to thirteen plans</h2>
+  <p class="lede maxch reveal">The whole build ran off a single brief (kept in <code class="inline">/input/brief.md</code>)
+  turned into a plan (<code class="inline">/input/plan.md</code>) of 13 tracked steps. They ran in
+  five phases — foundations first, then everything that could run in parallel, then assembly and
+  shipping.</p>
+
+  <div class="eli5 reveal"><span class="lens e">ELI5</span>
+    <p>Think of it like building a float for a parade. First you build the frame (foundations).
+    Then a bunch of people work at the same time — one paints, one writes the signs, one takes
+    photos. Finally everyone bolts their pieces on, you double-check it, and you roll it out.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span>
+    <p>Todos were tracked with explicit dependencies (a small DAG). Phase 1 (scaffold → design
+    tokens → motion) was serial because everything inherits from it. Phase 2 (git-history mining,
+    Playwright screenshot capture, imagery) was fully independent and ran as background agents /
+    async jobs. Phase 3 (narrative, architecture panels, skim layer) depended only on the mined
+    facts. Phase 4 assembled + hardened; Phase 5 shipped to Pages.</p></div>
+
+  <div class="grid g2 mt3">
+    <div class="phase glass reveal">
+      <h4>Phase 1 · Foundations</h4><p class="pnote">Serial — everything inherits from these.</p>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Scaffold the repo</div><div class="td">Dirs, LICENSE, Pages workflow, instruction files, copied <code>TECHNICAL_TASTE_COUNCIL.md</code>.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Port the design system</div><div class="td">sled's tokens → <code>journey.css</code>: Segoe UI, blue→teal gradient, glass, ambient glow.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Build the motion library</div><div class="td">Vanilla <code>motion.js</code>: reveals, word-reveal, reverse-scroll, scrollspy, theme.</div></div></div>
+    </div>
+    <div class="phase glass reveal d1">
+      <h4>Phase 2 · Research &amp; assets (parallel)</h4><p class="pnote">Independent — ran concurrently.</p>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Reconstruct the timeline</div><div class="td">Mined git across 3 repos: 187 commits, dates, and every wall's commit hash.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Capture real screenshots</div><div class="td">Playwright drove each live app (demo, share, leaderboard) → real PNGs.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Imagery (copyright-safe)</div><div class="td">Chose real screenshots + CSS gradients over stock photos (see Naval, below).</div></div></div>
+    </div>
+    <div class="phase glass reveal">
+      <h4>Phase 3 · Content (dual track)</h4><p class="pnote">Depends on mined facts.</p>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Write the narrative</div><div class="td">Hero's-journey story track; Naval + Great-Demo framing; improved intro.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Architecture explainers</div><div class="td">Diagrams + verbatim code snippets in "Under the hood" panels.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Craft the skim layer</div><div class="td">30-second TL;DR + evidence chips + repos-at-a-glance.</div></div></div>
+    </div>
+    <div class="phase glass reveal d1">
+      <h4>Phase 4 · Assemble &amp; harden</h4><p class="pnote">Bring it together, then stress it.</p>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Assemble the page</div><div class="td">Composed <code>index.html</code>; wired motion, nav, panels.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Polish a11y &amp; perf</div><div class="td">Skip link, focus rings, lazy images, reduced-motion, OG image.</div></div></div>
+      <div class="todo"><span class="dot done">✓</span><div><div class="tt">Verify claims &amp; links</div><div class="td">Headless render (0 errors); snippets checked verbatim against source.</div></div></div>
+    </div>
+  </div>
+  <div class="phase glass reveal mt3" style="border-left:3px solid var(--blue)">
+    <h4>Phase 5 · Ship</h4>
+    <div class="todo"><span class="dot done">✓</span><div><div class="tt">Deploy to GitHub Pages</div><div class="td">Commit as eriic-builds, create the public repo, publish via Actions.</div></div></div>
+  </div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============ CODEBASE ANALYSIS ============ -->
+<section class="wrap" id="codebase">
+  <span class="section-label reveal">Part 2 · Codebase analysis</span>
+  <h2 class="reveal">What's in the repo, and how it fits</h2>
+
+  <div class="split mt2">
+    <div class="reveal">
+      <p class="mt0">The whole thing is deliberately boring in the best way: no framework, no
+      build step, no dependencies. A browser can open <code class="inline">docs/index.html</code>
+      directly. That's the same discipline as the apps it documents.</p>
+      <div class="eli5"><span class="lens e">ELI5</span><p>It's one web page, one stylesheet, and
+      one small script — like a poster, a box of crayons, and a wind-up motor. Nothing to install;
+      double-click and it runs.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>Static site served from
+      <code class="inline">docs/</code> on GitHub Pages. <code class="inline">journey.css</code>
+      holds HSL-free design tokens per <code class="inline">[data-theme]</code>;
+      <code class="inline">motion.js</code> is an IIFE using <code class="inline">IntersectionObserver</code>
+      + one rAF-batched scroll handler. Progressive enhancement: with JS off, content still renders;
+      reveals just show immediately.</p></div>
+    </div>
+    <div class="glass card reveal d1">
+      <div class="filemap">
+<b>bracket-journey/</b><br>
+├─ <b>docs/</b>              <span class="c"># the deployed site</span><br>
+│  ├─ index.html       <span class="c"># the story (story + build track)</span><br>
+│  ├─ css/journey.css  <span class="c"># design system (from sled)</span><br>
+│  ├─ js/motion.js     <span class="c"># reveals, scrollspy, theme</span><br>
+│  ├─ assets/shots/    <span class="c"># REAL dashboard screenshots</span><br>
+│  └─ ANALYSIS.html    <span class="c"># ← you are here</span><br>
+├─ <b>input/</b>             <span class="c"># the spec that built it</span><br>
+│  ├─ brief.md         <span class="c"># prompt + all tuning</span><br>
+│  └─ plan.md          <span class="c"># the 13-step plan</span><br>
+├─ .github/workflows/  <span class="c"># Pages deploy</span><br>
+└─ TECHNICAL_TASTE_COUNCIL.md
+      </div>
+    </div>
+  </div>
+
+  <h3 class="mt3 reveal">The system it documents (what I re-analyzed)</h3>
+  <p class="maxch reveal">To write the architecture track honestly, I re-read all three source repos.
+  Here's the whole pipeline on one diagram — the thing a technical reader should be able to redraw
+  from memory after the story.</p>
+  <div class="diagram mt2 reveal">
+    <div class="flow">
+      <div class="node mono">Excel .xlsx<small>your picks</small></div>
+      <div class="arrow">→</div>
+      <div class="node accent">parse / generate<small>SheetJS · build_dashboard.py</small></div>
+      <div class="arrow">→</div>
+      <div class="node accent">render engine<small>computeState()</small></div>
+      <div class="arrow">→</div>
+      <div class="node">dashboard<small>DOM / index.html</small></div>
+    </div>
+    <div class="flow mt2">
+      <div class="node mono">FIFA feed<small>+ fallback</small></div>
+      <div class="arrow">→</div>
+      <div class="node accent">fetch_results.py<small>3×/day bot</small></div>
+      <div class="arrow">→</div>
+      <div class="node mono">results.json<small>on GitHub</small></div>
+      <div class="arrow">→</div>
+      <div class="node">live scores<small>into the render</small></div>
+    </div>
+    <div class="flow mt2">
+      <div class="node">your picks</div>
+      <div class="arrow">→</div>
+      <div class="node accent mono">#b=base64url<small>URL fragment</small></div>
+      <div class="arrow">→</div>
+      <div class="node">a friend's browser<small>localStorage leaderboard</small></div>
+    </div>
+  </div>
+  <div class="eli5 reveal"><span class="lens e">ELI5</span><p>Three little machines: one turns your
+  spreadsheet into a scoreboard, one fetches the real scores a few times a day, and one lets you
+  mail your scoreboard to a friend inside a link — no post office (server) in the middle.</p></div>
+  <div class="tech reveal"><span class="lens t">Technical</span><p>Repo 1 generates statically
+  (Python → HTML) and syncs via Actions. Repo 2 makes the render engine a pure function and runs
+  it client-side (SheetJS parse + golden-test parity). Repo 3 serializes the 31-bit pick vector to
+  <code class="inline">base64url(JSON)</code> in the URL fragment — never transmitted — and keeps
+  rivals in <code class="inline">localStorage</code> (<code class="inline">wcb.rivals.v1</code>).</p></div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============ COUNCIL REVIEW ============ -->
+<section class="wrap" id="council">
+  <span class="section-label reveal">Part 3 · Technical Taste Council review</span>
+  <h2 class="reveal">Nine voices, turned back on the work</h2>
+  <p class="lede maxch reveal">This is the "1st analysis" that drove the revisions in Part 4. Each
+  voice owns a domain; here's what it flagged on <em>this</em> repo, what I did about it, and the
+  verdict.</p>
+  <div class="legend2 reveal">
+    <span><b style="color:var(--win-ink)">PASS</b> — already met the bar</span>
+    <span><b style="color:var(--gold-ink)">IMPROVED</b> — drove a concrete change</span>
+  </div>
+
+  <div class="mt3">
+    <div class="review glass reveal"><div class="rh"><b>Karpathy</b><span class="dom">simplest thing that works</span><span class="verdict pass">Pass</span></div>
+      <p class="said">The motion snippet in the brief specified React + Vite + Tailwind + Framer Motion. Did the page need any of it?</p>
+      <p class="did">Shipped vanilla HTML/CSS/JS, no build. The motion was re-implemented in ~180 lines. No framework earned its place.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Hanselman</b><span class="dom">optimize for the next human</span><span class="verdict improved">Improved</span></div>
+      <p class="said">Alt text? Keyboard focus? What happens when a screenshot fails to load?</p>
+      <p class="did">Added a skip link, <code class="inline">:focus-visible</code> rings, real alt text, and a labeled placeholder that renders in place of any missing image — no broken tiles.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Russinovich</b><span class="dom">know what's underneath</span><span class="verdict improved">Improved</span></div>
+      <p class="said">The raw screenshots were 2,160×12,000 px, ~2.9&nbsp;MB each. Scroll handlers on every frame?</p>
+      <p class="did">Optimized images to web sizes (~0.4&nbsp;MB), added <code class="inline">loading="lazy"</code>, batched all scroll work in one <code class="inline">requestAnimationFrame</code>, and gated every effect behind <code class="inline">prefers-reduced-motion</code>.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Willison / Hamel</b><span class="dom">verify, don't trust</span><span class="verdict improved">Improved</span></div>
+      <p class="said">Are the code snippets real? Are the commit hashes and the "187 commits" real?</p>
+      <p class="did">Every snippet is pasted verbatim from the source repos; every wall cites a real hash from <code class="inline">git log</code>; the counts were computed, not guessed. The page was rendered headless to confirm <b>0 JS errors</b>.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Naval</b><span class="dom">does it earn its complexity?</span><span class="verdict improved">Improved</span></div>
+      <p class="said">The brief said "pull relevant images from the web." Do stock photos earn their cost (and copyright risk)?</p>
+      <p class="did">Dropped third-party imagery entirely. The real dashboards are the story's own evidence; decoration is CSS. Fewer moving parts, zero licensing risk.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Sean Grove</b><span class="dom">the spec is the real artifact</span><span class="verdict pass">Pass</span></div>
+      <p class="said">Where does intent live when the code drifts?</p>
+      <p class="did">The brief and the plan are committed in <code class="inline">/input</code> and linked from the page — the repo literally contains the spec that produced it.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Context Engineering</b><span class="dom">curate what the AI sees</span><span class="verdict pass">Pass</span></div>
+      <p class="said">Will the next agent know the rules without re-deriving them?</p>
+      <p class="did">Scoped <code class="inline">.github/copilot-instructions.md</code> + <code class="inline">AGENTS.md</code>, each pointing at the council — small, high-signal, not one giant file.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Steve Yegge</b><span class="dom">you're reviewing, not typing</span><span class="verdict pass">Pass</span></div>
+      <p class="said">Is scope creeping silently? Are decisions surfaced for approval?</p>
+      <p class="did">This very document frames the work for your review, and the judgment calls (dark default, dropping stock images) are named here for you to overrule.</p></div>
+
+    <div class="review glass reveal"><div class="rh"><b>Geoffrey Litt</b><span class="dom">malleable software for non-engineers</span><span class="verdict pass">Pass</span></div>
+      <p class="said">Can you change this yourself later, in plain language?</p>
+      <p class="did">Vanilla, sectioned, commented. Copy edits are plain HTML; the CSS is grouped by feature with header comments. No specialist required.</p></div>
+  </div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============ REVISIONS ============ -->
+<section class="wrap" id="revisions">
+  <span class="section-label reveal">Part 4 · What the review changed</span>
+  <h2 class="reveal">The revisions I made because of it</h2>
+  <p class="lede maxch reveal">A review that changes nothing is theater. These landed <em>before</em>
+  ship, straight from the voices above.</p>
+  <div class="grid g2 mt3">
+    <div class="card glass reveal"><span class="ic">♿</span><h3>Accessibility</h3><p>Skip-to-content link, visible focus rings, honest alt text, and a graceful placeholder for any image that can't load. <span class="muted">— Hanselman</span></p></div>
+    <div class="card glass reveal d1"><span class="ic">⚡</span><h3>Performance</h3><p>Screenshots optimized ~7× smaller, lazy-loaded and async-decoded; scroll work batched in one rAF; motion off under reduced-motion. <span class="muted">— Russinovich</span></p></div>
+    <div class="card glass reveal"><span class="ic">🔒</span><h3>Copyright &amp; leverage</h3><p>No stock photos or FIFA/MS/GitHub marks — only real screenshots + CSS. Less risk, less weight, more honest. <span class="muted">— Naval</span></p></div>
+    <div class="card glass reveal d1"><span class="ic">✅</span><h3>Truthfulness</h3><p>Verbatim-only code, real commit hashes, computed metrics, and a 0-error headless render check. <span class="muted">— Willison</span></p></div>
+    <div class="card glass reveal"><span class="ic">🎨</span><h3>Brand consistency</h3><p>Tried respecting system light/dark, then kept sled's dark default (its signature look) with a manual toggle. Flagged for you. <span class="muted">— Yegge / consistency</span></p></div>
+    <div class="card glass reveal d1"><span class="ic">📐</span><h3>Spec in the repo</h3><p>Brief + plan committed to <code class="inline">/input</code> and linked, so intent survives the code. <span class="muted">— Grove</span></p></div>
+  </div>
+</section>
+
+<hr class="hr wrap">
+
+<!-- ============ LEARNINGS ============ -->
+<section class="wrap" id="learn">
+  <span class="section-label reveal">Part 5 · Learning moments</span>
+  <h2 class="reveal">The transferable lessons</h2>
+  <p class="lede maxch reveal">Strip away the World Cup and these are the ideas worth keeping —
+  each one ELI5 and technical, because you asked to learn both.</p>
+
+  <div class="mt3 grid" style="gap:16px">
+    <div class="glass card reveal"><h3>1 · The spec is the product</h3>
+      <div class="eli5"><span class="lens e">ELI5</span><p>Write down exactly what "good" looks like first. The instructions are the real thing you're making — the code is just what pops out.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>A precise brief (Goal/Context/Source/Expectations) is a reusable, model-agnostic artifact. Plans and code are regenerable from it; when code drifts, the spec is the source of truth you diff against.</p></div>
+    </div>
+    <div class="glass card reveal"><h3>2 · The URL can be the database</h3>
+      <div class="eli5"><span class="lens e">ELI5</span><p>A link can carry the whole thing inside it. If the secret part of the link never gets sent to any computer but your friend's, there's nothing to leak.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>31 picks = 31 bits → <code class="inline">base64url(JSON)</code> in the URL <em>fragment</em>. By spec, fragments aren't sent in HTTP requests, so a share is zero-backend and privacy is structural, not policy.</p></div>
+    </div>
+    <div class="glass card reveal"><h3>3 · Tests must be hermetic</h3>
+      <div class="eli5"><span class="lens e">ELI5</span><p>Don't grade your homework against a scoreboard that keeps changing, or you'll "fail" every time a real game ends. Freeze the answer key.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>The golden test first compared against live results and would flap on every match. Freezing inputs to <code class="inline">tests/fixtures/</code> made it a deterministic regression eval that only fails on code change.</p></div>
+    </div>
+    <div class="glass card reveal"><h3>4 · Derive from the source of truth</h3>
+      <div class="eli5"><span class="lens e">ELI5</span><p>Show what really happened, not a copy of what you guessed. When your guesses were wrong, a copy leaves holes.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>The "actual path" bracket read from the user's pick tree, so busted picks left 8 blank slots. Rebuilt to read each slot from results directly, with placeholders for undecided games.</p></div>
+    </div>
+    <div class="glass card reveal"><h3>5 · Automation has blast radius</h3>
+      <div class="eli5"><span class="lens e">ELI5</span><p>Robots you build can accidentally step on each other. Know exactly what each one is allowed to push.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>Commits made with the default <code class="inline">GITHUB_TOKEN</code> don't trigger other workflows, so the site stopped redeploying. Fix: explicit <code class="inline">gh workflow run</code> dispatch + <code class="inline">actions: write</code>.</p></div>
+    </div>
+    <div class="glass card reveal"><h3>6 · Cheap models type, expensive models think</h3>
+      <div class="eli5"><span class="lens e">ELI5</span><p>Have your smartest helper plan and check the work; let faster helpers do the typing in between. You stay the boss who approves.</p></div>
+      <div class="tech"><span class="lens t">Technical</span><p>Brief → strong model plans → human review → cheaper models execute → strong model reviews → human approves. The expensive model reasons twice (plan + grade); throughput comes from the cheaper executors.</p></div>
+    </div>
+  </div>
+
+  <div class="cta glass reveal mt3">
+    <h2>If you remember one thing</h2>
+    <p class="lede maxch center">Set the vision, write the brief, and keep judgment in the loop.
+    The tools change; that loop is the durable skill — and it's what turned a spreadsheet into
+    three live apps in a weekend.</p>
+    <div class="cta-row" style="justify-content:center;margin-top:22px">
+      <a class="btn primary" href="index.html">Read the full story</a>
+      <a class="btn ghost" href="input/brief.md">See the brief</a>
+      <a class="btn ghost" href="input/plan.md">See the plan</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer wrap">
+  <div class="frow">
+    <div><b>Project Review</b> — the last look at The Bracket Journey.<br>
+      <span class="muted">A Technical Taste Council review by <a href="https://github.com/eriic-builds" target="_blank" rel="noopener">@eriic-builds</a>, written with the GitHub Copilot CLI.</span></div>
+    <div class="muted" style="text-align:right">Explained ELI5 &amp; technically · MIT · © 2026</div>
+  </div>
+</footer>
+
+<script src="js/motion.js"></script>
+<script>
+(function(){
+  var modes=["eli5","both","tech"];
+  var btns=document.querySelectorAll(".modebar button");
+  function set(m){
+    document.body.classList.remove("m-eli5","m-both","m-tech");
+    document.body.classList.add("m-"+m);
+    btns.forEach(function(b){b.classList.toggle("on",b.dataset.mode===m);});
+    try{localStorage.setItem("bj.mode",m);}catch(e){}
+  }
+  try{var s=localStorage.getItem("bj.mode"); if(s&&modes.indexOf(s)>=0) set(s);}catch(e){}
+  btns.forEach(function(b){b.addEventListener("click",function(){set(b.dataset.mode);});});
+})();
+</script>
+</body>
+</html>

@@ -12,7 +12,8 @@
   --grad:linear-gradient(120deg,#0097F4,#00B291);
   --grad-soft:linear-gradient(120deg,rgba(0,151,244,.16),rgba(0,178,145,.16));
   --radius:18px; --radius-sm:12px; --radius-lg:24px;
-  --fstack:"Segoe UI","Segoe Sans Display",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --fstack:"Poppins","Segoe UI","Segoe Sans Display",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --fserif:"Source Serif 4",Georgia,"Times New Roman",serif;
   --mono:ui-monospace,"SFMono-Regular","SF Mono","Cascadia Code","Consolas","Liberation Mono",monospace;
   --maxw:1120px;
 }
@@ -52,6 +53,9 @@ body{
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   overflow-x:hidden; position:relative; min-height:100vh;
 }
+/* Heading accents render in Source Serif 4 italic (em / i / .italic) — mirrors mywcbracket-glass. */
+h1 :is(em,i,.italic), h2 :is(em,i,.italic), h3 :is(em,i,.italic),
+.hero-title :is(em,i,.italic){ font-family:var(--fserif); font-style:italic; font-weight:400; }
 /* ambient radial glow (from sled body::before) */
 body::before{
   content:""; position:fixed; inset:-20% -10% auto -10%; height:80vh; z-index:0;

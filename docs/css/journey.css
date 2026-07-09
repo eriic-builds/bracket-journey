@@ -351,6 +351,10 @@ code.inline{font-family:var(--mono); font-size:.85em; background:var(--hover); b
 .footer{padding:40px 0 60px; border-top:1px solid var(--border); color:var(--muted); font-size:.86rem}
 .footer .frow{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center}
 .footer a{color:var(--muted)} .footer a:hover{color:var(--text)}
+.connect{display:flex; gap:14px; align-items:center; margin-top:12px}
+.connect a{color:var(--muted); display:inline-flex; line-height:0; transition:color .15s ease, transform .15s ease}
+.connect a:hover{color:var(--blue); transform:translateY(-1px)}
+.connect svg{width:20px; height:20px; fill:currentColor}
 
 /* ============================================================================
    MOTION — base states; motion.js toggles .in. All effects are opt-out under
